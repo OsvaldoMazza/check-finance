@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Check Finance App</title>
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-eval' https://cdn.jsdelivr.net">
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div id="dashboard">
+    <h1>Check Finance</h1>
+    <p class="subtitle">Análisis técnico con Ichimoku Cloud • Carga de datos desde CSV, CoinGecko o TwelveData</p>
+    
+    <div class="controls">
+      <button id="btnCsv">📊 Subir CSV</button>
+      <input type="file" id="csvFile" accept=".csv" style="display:none">
+      <select id="apiConnector" class="connector-select">
+        <option value="coingecko" selected>API: CoinGecko (Criptos)</option>
+        <option value="twelvedata">API: TwelveData (Acciones/Bonos)</option>
+      </select>
+      <div class="crypto-dropdown">
+        <input type="text" id="cryptoSearch" class="crypto-search" placeholder="🔍 Buscar activo..." autocomplete="off">
+        <div id="cryptoList" class="crypto-list hidden"></div>
+        <input type="hidden" id="selectedCrypto" value="bitcoin">
+      </div>
+      <button id="btnApi">🔌 Conectar a API</button>
+      <select id="samplePeriod" class="sample-select">
+        <option value="all">Muestras: Todos los datos</option>
+        <option value="1">Muestras: 1 día</option>
+        <option value="3">Muestras: 3 días</option>
+        <option value="7">Muestras: 7 días</option>
+        <option value="15">Muestras: 15 días</option>
+        <option value="30" selected>Muestras: 30 días</option>
+        <option value="60">Muestras: 60 días</option>
+        <option value="90">Muestras: 90 días</option>
+      </select>
+    </div>
+    
+    <div id="status"></div>
+    
+    <div id="metricsGrid" class="metrics-grid"></div>
+    
+    <div id="chartArea">
+      <div class="placeholder">
+        <p class="placeholder-title">📈 Gráfica del Activo</p>
+        <p class="placeholder-text">Selecciona una fuente de datos para comenzar</p>
+      </div>
+    </div>
+    
+    <div id="diagnosticPanel" class="diagnostic-panel"></div>
+  </div>
+  
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
