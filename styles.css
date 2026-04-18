@@ -359,6 +359,35 @@ tr:hover {
   margin-bottom: 20px;
 }
 
+/* Signal Box - TRADE ON/OFF */
+.signal-box {
+  grid-column: 1 / -1;
+  padding: 20px;
+  border-radius: 12px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: 3px;
+  text-align: center;
+  text-transform: uppercase;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.signal-box.ON {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 255, 0.1));
+  border: 2px solid var(--success);
+  color: var(--success);
+  box-shadow: 0 4px 16px rgba(0, 255, 136, 0.4), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.signal-box.OFF {
+  background: linear-gradient(135deg, rgba(255, 60, 90, 0.12), rgba(26, 32, 48, 0.3));
+  border: 2px solid rgba(255, 60, 90, 0.5);
+  color: rgba(255, 60, 90, 0.85);
+  box-shadow: 0 4px 16px rgba(255, 60, 90, 0.2);
+}
+
 .metric-card {
   background: var(--bg-tertiary);
   border: 1px solid var(--border);

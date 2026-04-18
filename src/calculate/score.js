@@ -6,9 +6,11 @@ import { detectRegime } from './regime.js';
 import { detectReversal } from './reversal.js';
 import { volumeConfirm } from './volume.js';
 
-export function calculateScore(cond, pbType, reversal, volCheck) {
+export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin) {
   let coreScore = 0;
   const coreDetail = [];
+  
+  const minPct = cloudThicknessMin != null ? (cloudThicknessMin * 100).toFixed(2) : '0.50';
   
   // Tendencia (25 pts)
   coreScore += cond.trend ? 25 : 0;
@@ -19,10 +21,16 @@ export function calculateScore(cond, pbType, reversal, volCheck) {
     max: 25
   });
   
-  // Nube (25 pts)
+  // Nube (25 pts) - con detalle de espesor
   coreScore += cond.cloud ? 25 : 0;
+  const cloudPct = cloudThickness != null ? (cloudThickness * 100).toFixed(2) + '%' : '—';
+  const cloudName = cond.cloud
+    ? `Nube — bullish, expansión, espesor ${cloudPct} (mín ${minPct}%)`
+    : cloudThickness != null && cloudThickness <= (cloudThicknessMin ?? 0.005)
+      ? `Nube — delgada (${cloudPct} < ${minPct}%) — soporte débil`
+      : `Nube — precio bajo o sin expansión (espesor ${cloudPct})`;
   coreDetail.push({
-    name: 'Nube — precio sobre cloud bullish en expansión',
+    name: cloudName,
     ok: cond.cloud,
     pts: cond.cloud ? 25 : 0,
     max: 25
@@ -117,31 +125,36 @@ export function calculateScore(cond, pbType, reversal, volCheck) {
   };
 }
 
-export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, rawDataForVol) {
+export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, rawDataForVol, calib) {
   const s = dSlow[i], prev = dSlow[i-1], f = dFast[i];
   if (!s || !f || !s.kijun || !f.kijun || !s.senkouA || !s.senkouB) return null;
   
-  const regime = detectRegime(dSlow, i, atrArr);
+  // v9: pasar calib a detectRegime
+  const regime = detectRegime(dSlow, i, atrArr, calib);
   const cloudTop = Math.max(s.senkouA, s.senkouB);
   const atrVal = atrArr ? atrArr[i] : null;
   const pbType = pullbackType(f, atrVal);
   
-  // Cloud thickness filter
+  // Cloud thickness
   const cloudThickness = Math.abs(s.senkouA - s.senkouB) / s.close;
+  
+  // v9: usar umbral calibrado del instrumento en lugar de 0.005 fijo
+  const cloudThicknessMin = calib?.cloudThicknessMin ?? 0.005;
   
   const cond = {
     trend:   s.tenkan !== undefined && s.tenkan > s.kijun && s.close > s.kijun,
     cloud:   s.close > cloudTop &&
              s.senkouA > s.senkouB &&
              prev && s.senkouA > (prev.senkouA || 0) &&
-             cloudThickness > 0.005,
+             cloudThickness > cloudThicknessMin,    // ← umbral calibrado
     bounce:  f.close > f.kijun,
     chikou:  chikouClear(dSlow, i, kijunSlow)
   };
   
   const reversal = detectReversal(dFast, i);
   const volCheck = volumeConfirm(rawDataForVol, i);
-  const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } = calculateScore(cond, pbType, reversal, volCheck);
+  const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } = 
+    calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin);
   const { coreMin, totalMin } = scoreConfig;
   const valid = regime === 'TREND' && coreScore >= coreMin && totalScore >= totalMin;
   
@@ -154,6 +167,8 @@ export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, raw
     bonusDetail,
     regime,
     pbType,
-    atrVal
+    atrVal,
+    cloudThickness,
+    cloudThicknessMin
   };
 }

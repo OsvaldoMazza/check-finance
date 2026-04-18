@@ -1,6 +1,6 @@
 // Punto de entrada principal
 import { loadData } from './calculate/dataLoader.js';
-import { ichimokuOptimized, calcATR, runBacktest, buildSignal } from './calculate/index.js';
+import { ichimokuOptimized, calcATR, runBacktest, buildSignal, calibrateParams } from './calculate/index.js';
 import { renderPriceChart } from './render/charts.js';
 import { API_CONFIG } from './config.js';
 
@@ -126,18 +126,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     try {
       if (currentConnector === 'coingecko') {
-        // Conectar a CoinGecko
+        // Conectar a CoinGecko con datos OHLC
         status.textContent = `Conectando a CoinGecko (${assetName})...`;
         
+        // Usar endpoint OHLC para obtener datos completos (no solo precios)
         const apiConfig = {
-          endpoint: `/coins/${assetId}/market_chart`,
+          endpoint: `/coins/${assetId}/ohlc`,
           params: { vs_currency: 'usd', days: '90' },
-          apiKey: ''
+          apiKey: API_CONFIG.coingecko.apiKey
         };
         const raw = await loadData({ type: 'api', apiConfig });
-        const data = raw.prices.map(([ts, price]) => ({
-          date: new Date(ts).toISOString().slice(0,10),
-          open: price, high: price, low: price, close: price, volume: null
+        
+        // raw es array de [timestamp, open, high, low, close]
+        const data = raw.map(candle => ({
+          date: new Date(candle[0]).toISOString().slice(0,10),
+          open: candle[1],
+          high: candle[2],
+          low: candle[3],
+          close: candle[4],
+          volume: null  // CoinGecko OHLC no incluye volumen
         }));
         
         apiData = data;
@@ -347,24 +354,30 @@ function renderDashboard(data, chartArea, diagnosticPanel) {
   const prices = data.map(d => d.close);
   const N = prices.length;
   const kijunSlow = slowP[1];
-  const btLimit = N - kijunSlow - 30;
+  
+  // v9 — AUTO-CALIBRACIÓN
+  // Corre un pase sobre los datos históricos del instrumento cargado
+  // y deriva umbrales por percentiles. Se ejecuta UNA vez por CSV/API.
+  const calib = calibrateParams(slow, atrArr, N);
+  
+  const btLimit = N - kijunSlow - 61;  // Ajustado para timeout de 60 barras
   
   // Generar señales históricas
   const sigIndices = [];
   for (let i = 100; i < btLimit; i++) {
-    const res = buildSignal(slow, fast, i, kijunSlow, atrArr, SCORE_CONFIG, data);
+    const res = buildSignal(slow, fast, i, kijunSlow, atrArr, SCORE_CONFIG, data, calib);
     if (res && res.valid) sigIndices.push(i);
   }
   
-  // Backtest
-  const bt = runBacktest(slow, fast, prices, sigIndices);
+  // Backtest (v8: pasar rawData para gap filter)
+  const bt = runBacktest(slow, fast, prices, sigIndices, data);
   
   // Señal actual
   const lastIdx = N - 1;
-  const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, data);
+  const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, data, calib);
   
   // Renderizar métricas
-  renderMetrics(bt, current, atrPer, SCORE_CONFIG);
+  renderMetrics(bt, current, atrPer, SCORE_CONFIG, calib);
   
   // Renderizar gráfico
   chartArea.innerHTML = '<canvas id="chartPrice" height="300"></canvas>';
@@ -379,7 +392,7 @@ function renderDashboard(data, chartArea, diagnosticPanel) {
   renderDiagnostic(current, SCORE_CONFIG, diagnosticPanel);
 }
 
-function renderMetrics(bt, current, atrPer, scoreConfig) {
+function renderMetrics(bt, current, atrPer, scoreConfig, calib) {
   const metricsGrid = document.getElementById('metricsGrid');
   if (!metricsGrid) return;
   
@@ -388,6 +401,19 @@ function renderMetrics(bt, current, atrPer, scoreConfig) {
   const mdd = parseFloat(bt.maxDD);
   const tr = parseFloat(bt.totalR);
   const atrCurrent = current?.atrVal ? current.atrVal.toFixed(4) : '—';
+  
+  // Espesor de nube con umbral calibrado
+  const cloudPctDisplay = current?.cloudThickness != null
+    ? (current.cloudThickness * 100).toFixed(2) + '%'
+    : '—';
+  const calibMin = current?.cloudThicknessMin ?? calib.cloudThicknessMin;
+  const cloudOk  = current?.cloudThickness != null && current.cloudThickness > calibMin;
+  
+  // Parámetros calibrados para mostrar
+  const calibAtrPct  = (calib.atrNormMedian * 100).toFixed(2) + '%';
+  const calibCloudPct = (calib.cloudThicknessMin * 100).toFixed(2) + '%';
+  const calibTkPct    = (calib.tkSpreadMin * 100).toFixed(2) + '%';
+  
   const revBonus = current?.bonusDetail?.find(b => b.name.includes('reversal'));
   const pattern = revBonus?.pattern || '—';
   
@@ -399,7 +425,15 @@ function renderMetrics(bt, current, atrPer, scoreConfig) {
     else if (volBonus?.ok === false) volStatus = 'ALTO ↑';
   }
   
-  metricsGrid.innerHTML = `
+  // v9: Signal Box - TRADE ON/OFF
+  const isActive = current && current.valid;
+  const signalBox = `
+    <div class="signal-box ${isActive ? 'ON' : 'OFF'}">
+      ${isActive ? '🟢 &nbsp;TRADE ON' : '🔴 &nbsp;TRADE OFF'}
+    </div>
+  `;
+  
+  metricsGrid.innerHTML = signalBox + `
     <div class="metric-card">
       <div class="metric-label">Señales históricas</div>
       <div class="metric-value accent">${bt.total}</div>
@@ -437,6 +471,10 @@ function renderMetrics(bt, current, atrPer, scoreConfig) {
       <div class="metric-value accent" style="font-size:20px">${atrCurrent}</div>
     </div>
     <div class="metric-card">
+      <div class="metric-label">Espesor nube</div>
+      <div class="metric-value ${cloudOk ? 'good' : 'bad'}" style="font-size:20px">${cloudPctDisplay}</div>
+    </div>
+    <div class="metric-card">
       <div class="metric-label">Pullback (ATR)</div>
       <div class="metric-value ${current?.pbType === 'SUPERFICIAL' ? 'good' : current?.pbType === 'NORMAL' ? 'neutral' : 'bad'}" style="font-size:16px">${current?.pbType || '—'}</div>
     </div>
@@ -447,6 +485,14 @@ function renderMetrics(bt, current, atrPer, scoreConfig) {
     <div class="metric-card">
       <div class="metric-label">Volumen pullback</div>
       <div class="metric-value ${volStatus === 'OK ↓' ? 'good' : volStatus === 'ALTO ↑' ? 'bad' : 'neutral'}" style="font-size:20px">${volStatus}</div>
+    </div>
+    <div class="metric-card" style="border-color:rgba(0,212,255,0.3)">
+      <div class="metric-label" style="color:var(--accent)">Auto-calibración (p35/p40/p50)</div>
+      <div style="font-size:11px;line-height:1.8;margin-top:4px;font-family:var(--mono);color:var(--text)">
+        Nube mín: <span style="color:var(--accent)">${calibCloudPct}</span><br>
+        ATR med:  <span style="color:var(--accent)">${calibAtrPct}</span><br>
+        TK spread mín: <span style="color:var(--accent)">${calibTkPct}</span>
+      </div>
     </div>
   `;
 }
