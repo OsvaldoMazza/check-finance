@@ -15,6 +15,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnCsv = document.getElementById('btnCsv');
   const csvFile = document.getElementById('csvFile');
   const btnApi = document.getElementById('btnApi');
+  const btnScanTradeOn = document.getElementById('btnScanTradeOn');
+  const tradeOnResults = document.getElementById('tradeOnResults');
   const apiConnector = document.getElementById('apiConnector');
   const cryptoSearch = document.getElementById('cryptoSearch');
   const cryptoList = document.getElementById('cryptoList');
@@ -31,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let fullData = null;  // Datos completos sin filtrar
   let cryptoListData = [];  // Almacenar lista completa de activos
   let currentConnector = 'coingecko';  // Conector actual
+  let tradeOnAssets = [];  // Activos con señal TRADE ON
   
   // Cargar lista de activos al iniciar
   cryptoListData = await loadAssetList(currentConnector);
@@ -221,6 +224,205 @@ document.addEventListener('DOMContentLoaded', async () => {
     diagnosticPanel.style.display = 'none';
     metricsGrid.innerHTML = '';
     console.log('🔴 API desconectada');
+  }
+  
+  // Event listener para el botón Scan Trade ON
+  btnScanTradeOn.onclick = async () => {
+    if (cryptoListData.length === 0) {
+      status.textContent = 'No hay activos cargados. Selecciona un conector API primero.';
+      return;
+    }
+    
+    // Limitar a los primeros 30 activos para evitar saturar la API
+    const MAX_ASSETS_TO_SCAN = 30;
+    const assetsToScan = cryptoListData.slice(0, MAX_ASSETS_TO_SCAN);
+    
+    const confirmScan = confirm(
+      `¿Escanear ${assetsToScan.length} activos buscando señales TRADE ON?\n\n` +
+      `Esto puede tomar varios minutos y consumir límites de API.\n` +
+      `(Limitado a ${MAX_ASSETS_TO_SCAN} activos para evitar saturación)`
+    );
+    
+    if (!confirmScan) return;
+    
+    btnScanTradeOn.disabled = true;
+    btnScanTradeOn.classList.add('scanning');
+    btnScanTradeOn.textContent = '⏳ Escaneando...';
+    
+    tradeOnAssets = [];
+    const totalAssets = assetsToScan.length;
+    let scanned = 0;
+    let errors = 0;
+    
+    status.textContent = `Escaneando ${totalAssets} activos...`;
+    
+    for (const asset of assetsToScan) {
+      scanned++;
+      status.textContent = `Escaneando ${scanned}/${totalAssets}: ${asset.name}... (Encontrados: ${tradeOnAssets.length}, Errores: ${errors})`;
+      
+      try {
+        // Obtener datos del activo
+        const data = await fetchAssetData(asset.id);
+        
+        if (!data || data.length < 100) {
+          console.log(`⚠️ ${asset.name}: datos insuficientes (${data?.length || 0} barras)`);
+          errors++;
+          continue;
+        }
+        
+        // Analizar si tiene señal TRADE ON
+        const hasTradeOn = await analyzeAssetForTradeOn(data);
+        
+        if (hasTradeOn) {
+          tradeOnAssets.push(asset);
+          console.log(`✅ TRADE ON encontrado: ${asset.name}`);
+        }
+        
+        // Pausa entre requests para no saturar la API (200ms)
+        await new Promise(resolve => setTimeout(resolve, 200));
+        
+      } catch (err) {
+        console.error(`Error escaneando ${asset.name}:`, err);
+        errors++;
+        // Si hay muchos errores consecutivos, detener el escaneo
+        if (errors > 5) {
+          status.textContent = `⚠️ Demasiados errores de API. Escaneo detenido.`;
+          break;
+        }
+      }
+    }
+    
+    // Actualizar UI con resultados
+    btnScanTradeOn.disabled = false;
+    btnScanTradeOn.classList.remove('scanning');
+    btnScanTradeOn.textContent = '🔍 Scan trade ON';
+    
+    if (tradeOnAssets.length > 0) {
+      status.textContent = `✅ Escaneo completo: ${tradeOnAssets.length} activos con TRADE ON de ${scanned} escaneados (${errors} errores)`;
+      renderTradeOnResults();
+      tradeOnResults.classList.remove('hidden');
+    } else {
+      status.textContent = `⚠️ Escaneo completo: ningún activo con TRADE ON de ${scanned} escaneados (${errors} errores)`;
+      tradeOnResults.classList.add('hidden');
+    }
+  };
+  
+  // Event listener para el dropdown de resultados Trade ON
+  tradeOnResults.addEventListener('change', async () => {
+    const selectedAssetId = tradeOnResults.value;
+    if (!selectedAssetId) return;
+    
+    const asset = tradeOnAssets.find(a => a.id === selectedAssetId);
+    if (!asset) return;
+    
+    // Actualizar selección principal
+    selectedCrypto.value = selectedAssetId;
+    cryptoSearch.value = asset.name;
+    
+    // Desconectar si está conectado y reconectar con el nuevo activo
+    if (isApiConnected) {
+      await disconnectAPI();
+    }
+    
+    await connectAPI();
+  });
+  
+  // Función para renderizar resultados Trade ON
+  function renderTradeOnResults() {
+    tradeOnResults.innerHTML = '<option value="">📊 Resultados TRADE ON (' + tradeOnAssets.length + ')</option>';
+    
+    tradeOnAssets.forEach(asset => {
+      const option = document.createElement('option');
+      option.value = asset.id;
+      option.textContent = `🟢 ${asset.name}`;
+      tradeOnResults.appendChild(option);
+    });
+  }
+  
+  // Función auxiliar para obtener datos de un activo
+  async function fetchAssetData(assetId) {
+    try {
+      if (currentConnector === 'coingecko') {
+        const apiConfig = {
+          endpoint: `/coins/${assetId}/ohlc`,
+          params: { vs_currency: 'usd', days: '90' },
+          apiKey: API_CONFIG.coingecko.apiKey
+        };
+        const raw = await loadData({ type: 'api', apiConfig });
+        
+        const data = raw.map(candle => ({
+          date: new Date(candle[0]).toISOString().slice(0,10),
+          open: candle[1],
+          high: candle[2],
+          low: candle[3],
+          close: candle[4],
+          volume: null
+        }));
+        
+        return data;
+        
+      } else if (currentConnector === 'twelvedata') {
+        const apiKey = API_CONFIG.twelvedata.apiKey;
+        const baseUrl = API_CONFIG.twelvedata.baseUrl;
+        const endpoint = API_CONFIG.twelvedata.endpoints.timeSeries;
+        const defaults = API_CONFIG.twelvedata.defaults;
+        
+        const url = `${baseUrl}${endpoint}?apikey=${apiKey}&symbol=${assetId}&interval=${defaults.interval}&outputsize=${defaults.outputsize}&format=${defaults.format}`;
+        
+        const response = await fetch(url);
+        const raw = await response.json();
+        
+        if (raw.status === 'error') {
+          throw new Error(raw.message || 'Error en TwelveData API');
+        }
+        
+        const data = raw.values.map(item => ({
+          date: item.datetime,
+          open: parseFloat(item.open),
+          high: parseFloat(item.high),
+          low: parseFloat(item.low),
+          close: parseFloat(item.close),
+          volume: parseFloat(item.volume)
+        })).reverse();
+        
+        return data;
+      }
+    } catch (err) {
+      console.error(`Error fetching ${assetId}:`, err);
+      return null;
+    }
+  }
+  
+  // Función auxiliar para analizar si un activo tiene TRADE ON
+  async function analyzeAssetForTradeOn(data) {
+    if (!data || data.length < 100) return false;
+    
+    try {
+      const slowP = [9,26,52];
+      const fastP = [7,22,44];
+      const atrPer = 14;
+      const SCORE_CONFIG = { coreMin: 70, totalMin: 80 };
+      
+      const slow = ichimokuOptimized(JSON.parse(JSON.stringify(data)), ...slowP);
+      const fast = ichimokuOptimized(JSON.parse(JSON.stringify(data)), ...fastP);
+      const atrArr = calcATR(data, atrPer);
+      const N = data.length;
+      const kijunSlow = slowP[1];
+      
+      // Calibración
+      const calib = calibrateParams(slow, atrArr, N);
+      
+      // Señal actual
+      const lastIdx = N - 1;
+      const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, data, calib);
+      
+      // Retornar true si hay señal válida (TRADE ON)
+      return current && current.valid;
+      
+    } catch (err) {
+      console.error('Error analyzing asset:', err);
+      return false;
+    }
   }
   
   // Función para renderizar la lista de activos

@@ -279,6 +279,71 @@ button:active {
   padding: 8px;
 }
 
+/* Scan Trade ON Button */
+.scan-btn {
+  background: linear-gradient(135deg, #b060ff 0%, #8040d0 100%);
+  color: white;
+  padding: 12px 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.scan-btn:hover {
+  box-shadow: 0 6px 16px rgba(176, 96, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.scan-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.scan-btn.scanning {
+  background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Trade ON Results Select */
+.tradeon-select {
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
+  color: var(--success);
+  border: 2px solid var(--success);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  min-width: 200px;
+  outline: none;
+}
+
+.tradeon-select:hover {
+  border-color: var(--success);
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.3);
+}
+
+.tradeon-select:focus {
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+}
+
+.tradeon-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px;
+}
+
+.tradeon-select.hidden {
+  display: none;
+}
+
 #status {
   min-height: 24px;
   color: var(--warning);
