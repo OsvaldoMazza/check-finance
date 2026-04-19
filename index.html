@@ -11,8 +11,10 @@
 </head>
 <body>
   <div id="dashboard">
-    <h1>Check Finance</h1>
-    <p class="subtitle">Análisis técnico con Ichimoku Cloud • Carga de datos desde CSV, CoinGecko o TwelveData</p>
+    <div class="header">
+      <h1>Check Finance</h1>
+      <button id="btnSettings" class="settings-btn" title="Configuración">⚙️</button>
+    </div>
     
     <div class="controls">
       <button id="btnCsv">📊 Subir CSV</button>
@@ -55,6 +57,43 @@
     </div>
     
     <div id="diagnosticPanel" class="diagnostic-panel"></div>
+    
+    <!-- Modal de Configuración -->
+    <div id="settingsModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⚙️ Configuración</h2>
+          <button id="closeSettings" class="close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label for="scanDelay">Delay entre requests (ms):</label>
+            <input type="number" id="scanDelay" min="1000" max="30000" step="1000" value="8000">
+            <span class="setting-hint">Tiempo de espera entre cada petición al escanear (8000ms = 8 segundos)</span>
+          </div>
+          <div class="setting-group">
+            <label for="scanLimit">Límite de activos a escanear:</label>
+            <input type="number" id="scanLimit" min="5" max="100" step="5" value="30">
+            <span class="setting-hint">Cantidad máxima de activos que el scanner analizará (solo si no hay selección manual)</span>
+          </div>
+          <div class="setting-group">
+            <label>Activos seleccionados para scan:</label>
+            <div class="selected-assets-info">
+              <span id="selectedAssetsCount">0 activos seleccionados</span>
+              <div class="assets-actions">
+                <button id="selectAllAssets" class="action-btn">Seleccionar todos</button>
+                <button id="clearAllAssets" class="action-btn">Limpiar selección</button>
+              </div>
+            </div>
+            <span class="setting-hint">Marca activos en el dropdown para escanear solo esos. Si no hay marcados, se usan los primeros N de la lista.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="saveSettings" class="save-btn">💾 Guardar</button>
+          <button id="cancelSettings" class="cancel-btn">Cancelar</button>
+        </div>
+      </div>
+    </div>
   </div>
   
   <script type="module" src="./src/main.js"></script>
