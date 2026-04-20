@@ -87,7 +87,7 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
     nodata: false,
     bonus: true
   });
-  
+
   // Volumen (+10 / 0 / 0): warning visual si es alto, sin penalizacion.
   if (volCheck === null) {
     bonusDetail.push({
@@ -119,7 +119,7 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
       warn: true
     });
   }
-  
+
   return {
     coreScore,
     bonusScore,
@@ -179,11 +179,12 @@ export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, raw
   };
 
   const reversal = detectReversal(dFast, i, pbLb);
-  const volCheck = volumeConfirm(rawDataForVol, i);
+  const volCheck = volumeConfirm(rawDataForVol, i - pbLb);
   const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } =
     calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin);
   const { coreMin, totalMin } = scoreConfig;
-  const valid = regime === 'TREND' && coreScore >= coreMin && totalScore >= totalMin;
+  const tradablePullback = pbType === 'SUPERFICIAL' || pbType === 'NORMAL';
+  const valid = regime === 'TREND' && tradablePullback && coreScore >= coreMin && totalScore >= totalMin;
 
   return {
     valid,

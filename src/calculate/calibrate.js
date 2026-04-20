@@ -3,15 +3,15 @@
 
 /**
  * Auto-calibración de parámetros basados en percentiles del instrumento
- * 
+ *
  * Problema: parámetros fijos (cloudThickness > 0.005, etc.) no se adaptan
  * a la volatilidad estructural de cada activo. MELI tiene nubes más gruesas
  * que SPY por definición — no porque sea "mejor" sino porque su ATR es mayor.
- * 
+ *
  * Solución: un pase único sobre los datos históricos del instrumento calcula
  * percentiles de las métricas clave y deriva umbrales desde la distribución
  * real del activo. El sistema se calibra solo al cargar cada CSV/API.
- * 
+ *
  * Parámetros calibrados:
  *   cloudThicknessMin:  percentil 35 del espesor histórico de la nube
  *                       → exige que la nube esté en el 65% superior de su historia
@@ -19,10 +19,10 @@
  *                       → referencia de volatilidad "normal" del instrumento
  *   tkSpreadMin:        percentil 40 del spread |Tenkan-Kijun|/precio
  *                       → trendStrength mínimo para considerar tendencia real
- * 
+ *
  * Fallbacks: si hay menos de 100 barras válidas, se usan los valores fijos
  * anteriores para no crashear con datasets cortos.
- * 
+ *
  * @param {Array} slow - Datos con Ichimoku slow TF calculado
  * @param {Array} atrArr - Array de ATR calculados
  * @param {number} N - Longitud del dataset
@@ -36,10 +36,10 @@ export function calibrateParams(slow, atrArr, N) {
   for (let i = 60; i < N; i++) {
     const s = slow[i];
     if (!s || !s.senkouA || !s.senkouB || !s.close || s.close <= 0) continue;
-    
+
     // Espesor de la nube normalizado
     thicknesses.push(Math.abs(s.senkouA - s.senkouB) / s.close);
-    
+
     // ATR normalizado
     if (atrArr[i]) atrNorms.push(atrArr[i] / s.close);
 
@@ -51,7 +51,7 @@ export function calibrateParams(slow, atrArr, N) {
   const pct = (arr, p) => {
     if (arr.length < 20) return null;          // insuficiente → fallback
     const sorted = [...arr].sort((a, b) => a - b);
-    const idx = Math.floor(sorted.length * p);
+    const idx = Math.floor((sorted.length - 1) * p);
     return sorted[Math.max(0, Math.min(idx, sorted.length - 1))];
   };
 
