@@ -631,6 +631,19 @@ tr:hover {
   margin-top: 6px;
 }
 
+/* ── chart-wrap: panel contenedor de gráficos ──────────────────────────────── */
+.chart-wrap {
+  margin-bottom: 20px;
+  padding: 18px 22px;
+  background: rgba(12, 17, 26, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.chart-wrap canvas {
+  width: 100% !important;
+}
+
 /* ── abs-panel: valores absolutos 3 columnas ─────────────────────────────── */
 .abs-panel {
   grid-column: 1 / -1;

@@ -2,7 +2,7 @@
 // Renders the main dashboard: metrics grid, price chart, diagnostic panel
 
 import { ichimokuOptimized, calcATR, runBacktest, buildSignal, calibrateParams, normalizeMarketData } from '../../calculate/index.js';
-import { renderPriceChart } from '../../render/charts.js';
+import { renderPriceChart, renderEquityChart, renderVolumeChart } from '../../render/charts.js';
 
 export function renderDashboard(data, chartArea, diagnosticPanel, options = {}) {
   const normalizedData = normalizeMarketData(data);
@@ -46,8 +46,34 @@ export function renderDashboard(data, chartArea, diagnosticPanel, options = {}) 
   chartArea.innerHTML = '<canvas id="chartPrice" height="300"></canvas>';
   setTimeout(() => {
     const canvas = document.getElementById('chartPrice');
-    if (canvas) renderPriceChart(canvas, normalizedData, slow, fast);
+    if (canvas) renderPriceChart(canvas, normalizedData, slow, fast, bt.trades ?? []);
   }, 0);
+
+  // ── Equity chart ────────────────────────────────────────────────────────────
+  const equityArea = document.getElementById('chartEquityArea');
+  if (equityArea && bt.equity && bt.equity.length > 1) {
+    equityArea.classList.remove('hidden');
+    equityArea.querySelector('canvas').getContext('2d'); // ensure ready
+    setTimeout(() => {
+      const cvs = document.getElementById('chartEquity');
+      if (cvs) renderEquityChart(cvs, bt.equity);
+    }, 0);
+  } else if (equityArea) {
+    equityArea.classList.add('hidden');
+  }
+
+  // ── Volume chart ─────────────────────────────────────────────────────────────
+  const volumeArea = document.getElementById('chartVolumeArea');
+  const hasVolume = normalizedData.some(bar => !isNaN(bar.volume));
+  if (volumeArea && hasVolume) {
+    volumeArea.classList.remove('hidden');
+    setTimeout(() => {
+      const cvs = document.getElementById('chartVolume');
+      if (cvs) renderVolumeChart(cvs, normalizedData);
+    }, 0);
+  } else if (volumeArea) {
+    volumeArea.classList.add('hidden');
+  }
 
   renderDiagnostic(current, SCORE_CONFIG, diagnosticPanel);
 }
