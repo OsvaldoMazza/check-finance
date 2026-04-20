@@ -1,7 +1,7 @@
 // src/components/scanner/index.js
 // Scan Trade ON: analyze assets and render results
 
-import { ichimokuOptimized, calcATR, buildSignal, calibrateParams } from '../../calculate/index.js';
+import { ichimokuOptimized, calcATR, buildSignal, calibrateParams, normalizeMarketData } from '../../calculate/index.js';
 import { fetchAssetData } from '../apiConnector/index.js';
 
 /**
@@ -12,8 +12,9 @@ import { fetchAssetData } from '../apiConnector/index.js';
  * @returns {Promise<boolean>}
  */
 export async function analyzeAssetForTradeOn(data, assetType) {
-  if (!data || data.length < 60) {
-    console.log(`⚠️ Data insufficient: ${data ? data.length : 0} bars (need 60+)`);
+  const normalized = normalizeMarketData(data);
+  if (!normalized || normalized.length < 60) {
+    console.log(`⚠️ Data insufficient: ${normalized ? normalized.length : 0} bars (need 60+)`);
     return false;
   }
 
@@ -22,18 +23,18 @@ export async function analyzeAssetForTradeOn(data, assetType) {
     const fastP = assetType === 'crypto' ? [5,  15, 30] : [7, 22, 44];
     const atrPer = 14;
     const SCORE_CONFIG = assetType === 'crypto'
-      ? { coreMin: 70, totalMin: 85 }
-      : { coreMin: 70, totalMin: 80 };
+      ? { coreMin: 70, totalMin: 80 }
+      : { coreMin: 70, totalMin: 75 };
 
-    const slow = ichimokuOptimized(JSON.parse(JSON.stringify(data)), ...slowP);
-    const fast = ichimokuOptimized(JSON.parse(JSON.stringify(data)), ...fastP);
-    const atrArr    = calcATR(data, atrPer);
-    const N         = data.length;
+    const slow = ichimokuOptimized(JSON.parse(JSON.stringify(normalized)), ...slowP);
+    const fast = ichimokuOptimized(JSON.parse(JSON.stringify(normalized)), ...fastP);
+    const atrArr    = calcATR(normalized, atrPer);
+    const N         = normalized.length;
     const kijunSlow = slowP[1];
 
     const calib   = calibrateParams(slow, atrArr, N);
     const lastIdx = N - 1;
-    const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, data, calib);
+    const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, normalized, calib);
 
     const isTradeOn = current && current.valid;
     console.log(`Result: ${isTradeOn ? '✅ TRADE ON' : '❌ No signal'}`);

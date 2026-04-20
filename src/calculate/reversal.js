@@ -1,8 +1,9 @@
 // src/calculate/reversal.js
 // Detección de patrones de reversión (Engulfing, Hammer/Pin)
 
-export function detectReversal(data, i) {
-  const c = data[i], prev = data[i-1];
+export function detectReversal(data, i, lb = 0) {
+  const barIdx = i - lb;
+  const c = data[barIdx], prev = data[barIdx - 1];
   if (!c || !prev) return { pattern: 'NINGUNO', ok: false };
   
   const range = c.high - c.low;
@@ -10,9 +11,10 @@ export function detectReversal(data, i) {
   
   const hasOpen = c.open !== undefined && !isNaN(c.open);
   const prevHasOpen = prev.open !== undefined && !isNaN(prev.open);
-  const bodyOpen = hasOpen ? c.open : c.close;
-  const bodyBottom = Math.min(c.close, bodyOpen);
-  const bodyTop = Math.max(c.close, bodyOpen);
+  if (!hasOpen) return { pattern: 'NINGUNO', ok: false };
+
+  const bodyBottom = Math.min(c.close, c.open);
+  const bodyTop = Math.max(c.close, c.open);
   const body = bodyTop - bodyBottom;
   const lowerWick = bodyBottom - c.low;
   const upperWick = c.high - bodyTop;

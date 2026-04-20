@@ -10,3 +10,4 @@ export { detectReversal } from './reversal.js';
 export { volumeConfirm } from './volume.js';
 export { calculateScore, buildSignal } from './score.js';
 export { calibrateParams } from './calibrate.js';
+export { normalizeMarketData } from './inputAdapter.js';

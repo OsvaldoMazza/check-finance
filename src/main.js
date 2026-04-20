@@ -187,7 +187,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       btnApi.classList.add('connected');
       updateUIState();
       setStatus(`API conectada: ${data.length} puntos de ${assetName}. Mostrando últimos ${filtered.length}.`);
-      renderDashboard(filtered, chartArea, diagnosticPanel);
+      renderDashboard(filtered, chartArea, diagnosticPanel, {
+        assetType: currentConnector === 'coingecko' ? 'crypto' : 'acciones'
+      });
 
     } catch (err) {
       console.error('[ERROR] Error API:', err);
@@ -253,7 +255,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       fullData   = data;
       const filtered = filterDataByPeriod(data, samplePeriod.value);
       setStatus(`CSV cargado: ${data.length} filas. Mostrando últimos ${filtered.length} puntos.`);
-      renderDashboard(filtered, chartArea, diagnosticPanel);
+      renderDashboard(filtered, chartArea, diagnosticPanel, {
+        assetType: currentConnector === 'coingecko' ? 'crypto' : 'acciones'
+      });
     } catch (err) {
       console.error('[ERROR] Error CSV:', err);
       setStatus(`Error al cargar CSV: ${err.message || err}`);
@@ -271,7 +275,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   samplePeriod.addEventListener('change', () => {
     if (fullData && fullData.length > 0) {
       const filtered = filterDataByPeriod(fullData, samplePeriod.value);
-      renderDashboard(filtered, chartArea, diagnosticPanel);
+      renderDashboard(filtered, chartArea, diagnosticPanel, {
+        assetType: currentConnector === 'coingecko' ? 'crypto' : 'acciones'
+      });
       setStatus(`Mostrando últimos ${filtered.length} puntos de ${fullData.length} totales.`);
     }
   });

@@ -1,20 +1,20 @@
 // src/calculate/signals.js
 // Funciones para detección de señales y condiciones
 
-// Chikou: close actual sobre máximos previos
+// Chikou tradicional: close actual por encima del high en (i - disp)
 export default function chikouClear(data, i, disp) {
   const close = data[i]?.close;
   if (!close) return false;
-  const start = Math.max(0, i - disp);
-  for (let j = start; j < i; j++) {
-    if (data[j] && close <= data[j].high) return false;
-  }
-  return true;
+  const refIdx = i - disp;
+  if (refIdx < 0) return false;
+  const ref = data[refIdx];
+  if (!ref) return false;
+  return close > ref.high;
 }
 
 // Pullback type
 export function pullbackType(f, atrVal) {
-  if (!f || !f.kijun) return 'PROFUNDO';
+  if (!f || !f.kijun) return 'NO_PULLBACK';
   if (f.low > f.kijun) return 'NO_PULLBACK';
   const depthPrice = f.kijun - f.low;
   if (atrVal && atrVal > 0) {

@@ -13,29 +13,15 @@
  * @returns {string} 'TREND' o 'RANGE'
  */
 export function detectRegime(data, i, atrArr, calib) {
-  const c = data[i], prev = data[i-1];
+  const c = data[i], prev = data[i - 1];
   if (!c || !prev || !c.kijun || !prev.kijun) return 'RANGE';
 
   const atrNorm = (atrArr && atrArr[i] && c.close > 0)
                   ? atrArr[i] / c.close
                   : (calib?.atrNormMedian ?? 0.01);
 
-  const slope         = c.kijun > prev.kijun;
-  const distance      = Math.abs((c.close - c.kijun) / c.close);
-  const expansion     = c.senkouA && prev.senkouA && c.senkouA > prev.senkouA;
-  
-  // Fuerza de tendencia por separación Tenkan-Kijun
-  const trendStrength = (c.tenkan !== undefined && c.kijun)
-                        ? Math.abs(c.tenkan - c.kijun) / c.close
-                        : 0;
+  const slope = c.kijun > prev.kijun;
+  const distance = Math.abs((c.close - c.kijun) / c.close);
 
-  // v9: umbral de trendStrength = tkSpreadMin calibrado (p40 del instrumento)
-  // vs versiones anteriores donde usaba 1×atrNorm (mismo valor para todos)
-  const tkThreshold = calib?.tkSpreadMin ?? atrNorm;
-
-  return (slope &&
-          distance      > 0.5 * atrNorm &&
-          trendStrength > tkThreshold    &&
-          expansion)
-         ? 'TREND' : 'RANGE';
+  return (slope && distance > 0.5 * atrNorm) ? 'TREND' : 'RANGE';
 }

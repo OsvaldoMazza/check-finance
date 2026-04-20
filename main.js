@@ -15,8 +15,8 @@ function createWindow () {
   });
   win.loadFile('index.html');
   
-  // DevTools deshabilitado (descomentar para debugging)
-  // win.webContents.openDevTools();
+  // DevTools habilitado para debugging
+  // win.webContents.openDevTools();d
   
   // Redirigir console.log del renderer a la terminal
   win.webContents.on('console-message', (event, level, message, line, sourceId) => {

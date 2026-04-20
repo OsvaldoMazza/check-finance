@@ -1,24 +1,28 @@
 // src/components/dashboard/index.js
 // Renders the main dashboard: metrics grid, price chart, diagnostic panel
 
-import { ichimokuOptimized, calcATR, runBacktest, buildSignal, calibrateParams } from '../../calculate/index.js';
+import { ichimokuOptimized, calcATR, runBacktest, buildSignal, calibrateParams, normalizeMarketData } from '../../calculate/index.js';
 import { renderPriceChart } from '../../render/charts.js';
 
-export function renderDashboard(data, chartArea, diagnosticPanel) {
-  if (!data || data.length === 0) {
+export function renderDashboard(data, chartArea, diagnosticPanel, options = {}) {
+  const normalizedData = normalizeMarketData(data);
+  if (!normalizedData || normalizedData.length === 0) {
     chartArea.innerHTML = '<div class="placeholder"><p style="color:#ff3c5a;">No hay datos para mostrar.</p></div>';
     return;
   }
 
-  const slowP = [9, 26, 52];
-  const fastP = [7, 22, 44];
+  const assetType = options.assetType === 'crypto' ? 'crypto' : 'acciones';
+  const slowP = assetType === 'crypto' ? [10, 30, 60] : [9, 26, 52];
+  const fastP = assetType === 'crypto' ? [5, 15, 30] : [7, 22, 44];
   const atrPer = 14;
-  const SCORE_CONFIG = { coreMin: 70, totalMin: 80 };
+  const SCORE_CONFIG = assetType === 'crypto'
+    ? { coreMin: 70, totalMin: 80 }
+    : { coreMin: 70, totalMin: 75 };
 
-  const slow = ichimokuOptimized(JSON.parse(JSON.stringify(data)), ...slowP);
-  const fast = ichimokuOptimized(JSON.parse(JSON.stringify(data)), ...fastP);
-  const atrArr = calcATR(data, atrPer);
-  const prices = data.map(d => d.close);
+  const slow = ichimokuOptimized(JSON.parse(JSON.stringify(normalizedData)), ...slowP);
+  const fast = ichimokuOptimized(JSON.parse(JSON.stringify(normalizedData)), ...fastP);
+  const atrArr = calcATR(normalizedData, atrPer);
+  const prices = normalizedData.map(d => d.close);
   const N = prices.length;
   const kijunSlow = slowP[1];
 
@@ -29,20 +33,20 @@ export function renderDashboard(data, chartArea, diagnosticPanel) {
 
   const sigIndices = [];
   for (let i = 100; i < btLimit; i++) {
-    const res = buildSignal(slow, fast, i, kijunSlow, atrArr, SCORE_CONFIG, data, calib);
+    const res = buildSignal(slow, fast, i, kijunSlow, atrArr, SCORE_CONFIG, normalizedData, calib);
     if (res && res.valid) sigIndices.push(i);
   }
 
-  const bt = runBacktest(slow, fast, prices, sigIndices, data);
+  const bt = runBacktest(fast, prices, sigIndices, normalizedData);
   const lastIdx = N - 1;
-  const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, data, calib);
+  const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, normalizedData, calib);
 
   renderMetrics(bt, current, atrPer, SCORE_CONFIG, calib);
 
   chartArea.innerHTML = '<canvas id="chartPrice" height="300"></canvas>';
   setTimeout(() => {
     const canvas = document.getElementById('chartPrice');
-    if (canvas) renderPriceChart(canvas, data, slow, fast);
+    if (canvas) renderPriceChart(canvas, normalizedData, slow, fast);
   }, 0);
 
   renderDiagnostic(current, SCORE_CONFIG, diagnosticPanel);
@@ -54,100 +58,53 @@ function renderMetrics(bt, current, atrPer, scoreConfig, calib) {
   const metricsGrid = document.getElementById('metricsGrid');
   if (!metricsGrid) return;
 
-  const wr  = parseFloat(bt.winRate);
-  const ex  = parseFloat(bt.expectancy);
-  const mdd = parseFloat(bt.maxDD);
-  const tr  = parseFloat(bt.totalR);
-  const atrCurrent = current?.atrVal ? current.atrVal.toFixed(4) : '—';
+  const absNum = (value, decimals = 2) => {
+    const n = Number(value);
+    if (Number.isNaN(n)) return '0';
+    return Math.abs(n).toFixed(decimals);
+  };
 
-  const cloudPctDisplay = current?.cloudThickness != null
-    ? (current.cloudThickness * 100).toFixed(2) + '%'
-    : '—';
-  const calibMin = current?.cloudThicknessMin ?? calib.cloudThicknessMin;
-  const cloudOk  = current?.cloudThickness != null && current.cloudThickness > calibMin;
+  const totalSignals = Math.abs(Number(bt?.total || 0));
+  const winRateAbs = absNum(bt?.winRate, 1);
+  const expectancyAbs = absNum(bt?.expectancy, 2);
+  const totalRAbs = absNum(bt?.totalR, 2);
+  const maxDDAbs = absNum(bt?.maxDD, 2);
+  const coreAbs = absNum(current?.coreScore, 0);
+  const totalScoreAbs = absNum(current?.totalScore, 0);
+  const atrAbs = absNum(current?.atrVal, 4);
+  const cloudAbs = absNum((current?.cloudThickness ?? 0) * 100, 2);
+  const tkAbs = absNum((current?.trendStrength ?? 0) * 100, 2);
+  const pbAbs = current?.pbType || 'NO_PULLBACK';
+  const regimeAbs = current?.regime || 'RANGE';
 
-  const calibAtrPct   = (calib.atrNormMedian    * 100).toFixed(2) + '%';
-  const calibCloudPct = (calib.cloudThicknessMin * 100).toFixed(2) + '%';
-  const calibTkPct    = (calib.tkSpreadMin       * 100).toFixed(2) + '%';
+  const calibAtrPct   = absNum((calib?.atrNormMedian ?? 0) * 100, 2);
+  const calibCloudPct = absNum((calib?.cloudThicknessMin ?? 0) * 100, 2);
+  const calibTkPct    = absNum((calib?.tkSpreadMin ?? 0) * 100, 2);
 
   const revBonus = current?.bonusDetail?.find(b => b.name.includes('reversal'));
-  const pattern  = revBonus?.pattern || '—';
+  const pattern  = revBonus?.pattern || 'NINGUNO';
 
-  let volStatus = '—';
+  let volStatus = 'SIN DATOS';
   if (current) {
     const volBonus = current.bonusDetail.find(b => b.name.includes('Volumen'));
     if (volBonus?.nodata)       volStatus = 'SIN DATOS';
     else if (volBonus?.ok === true)  volStatus = 'OK ↓';
-    else if (volBonus?.ok === false) volStatus = 'ALTO ↑';
+    else if (volBonus?.warn) volStatus = '⚠ ALTO';
   }
 
   const isActive  = current && current.valid;
   const signalBox = `
-    <div class="signal-box ${isActive ? 'ON' : 'OFF'}">
+    <div class="signal-box ${isActive ? 'ON' : 'OFF'}" style="font-size:34px;padding:14px 22px;letter-spacing:4px;margin-bottom:12px;">
       ${isActive ? '🟢 &nbsp;TRADE ON' : '🔴 &nbsp;TRADE OFF'}
     </div>
   `;
 
   metricsGrid.innerHTML = signalBox + `
-    <div class="metric-card">
-      <div class="metric-label">Señales históricas</div>
-      <div class="metric-value accent">${bt.total}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Win Rate</div>
-      <div class="metric-value ${wr >= 50 ? 'good' : 'bad'}">${bt.winRate}%</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Expectancy</div>
-      <div class="metric-value ${ex > 0 ? 'good' : 'bad'}">${bt.expectancy} R</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Total acumulado</div>
-      <div class="metric-value ${tr > 0 ? 'good' : 'bad'}">${bt.totalR} R</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Max Drawdown</div>
-      <div class="metric-value ${mdd < 3 ? 'good' : mdd < 6 ? 'neutral' : 'bad'}">${bt.maxDD} R</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Régimen actual</div>
-      <div class="metric-value ${current?.regime === 'TREND' ? 'good' : 'neutral'}">${current?.regime || '—'}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Core score</div>
-      <div class="metric-value ${(current?.coreScore || 0) >= scoreConfig.coreMin ? 'good' : 'bad'}">${current?.coreScore ?? '—'}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Total score</div>
-      <div class="metric-value ${(current?.totalScore || 0) >= scoreConfig.totalMin ? 'good' : 'neutral'}">${current?.totalScore ?? '—'}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">ATR(${atrPer}) actual</div>
-      <div class="metric-value accent" style="font-size:20px">${atrCurrent}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Espesor nube</div>
-      <div class="metric-value ${cloudOk ? 'good' : 'bad'}" style="font-size:20px">${cloudPctDisplay}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Pullback (ATR)</div>
-      <div class="metric-value ${current?.pbType === 'SUPERFICIAL' ? 'good' : current?.pbType === 'NORMAL' ? 'neutral' : 'bad'}" style="font-size:16px">${current?.pbType || '—'}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Patrón reversal</div>
-      <div class="metric-value purple" style="font-size:16px">${pattern}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Volumen pullback</div>
-      <div class="metric-value ${volStatus === 'OK ↓' ? 'good' : volStatus === 'ALTO ↑' ? 'bad' : 'neutral'}" style="font-size:20px">${volStatus}</div>
-    </div>
-    <div class="metric-card" style="border-color:rgba(0,212,255,0.3)">
-      <div class="metric-label" style="color:var(--accent)">Auto-calibración (p35/p40/p50)</div>
-      <div style="font-size:11px;line-height:1.8;margin-top:4px;font-family:var(--mono);color:var(--text)">
-        Nube mín: <span style="color:var(--accent)">${calibCloudPct}</span><br>
-        ATR med:  <span style="color:var(--accent)">${calibAtrPct}</span><br>
-        TK spread mín: <span style="color:var(--accent)">${calibTkPct}</span>
-      </div>
+    <div class="metric-card" style="padding:10px 12px;min-height:auto;">
+      <div class="metric-label" style="margin-bottom:6px;">Valores absolutos (sin condicionales)</div>
+      <span class="metric-value accent" style="display:block;font-size:13px;line-height:1.6;font-family:var(--mono);font-weight:500;">
+        señales=${totalSignals} | winRate=${winRateAbs}% | expectancy=${expectancyAbs}R | totalR=${totalRAbs}R | maxDD=${maxDDAbs}R | régimen=${regimeAbs} | core=${coreAbs} | totalScore=${totalScoreAbs} | atr${atrPer}=${atrAbs} | nube=${cloudAbs}% | tk=${tkAbs}% | pullback=${pbAbs} | reversal=${pattern} | volumen=${volStatus} | calibNube=${calibCloudPct}% | calibATR=${calibAtrPct}% | calibTK=${calibTkPct}%
+      </span>
     </div>
   `;
 }
@@ -163,6 +120,15 @@ function renderDiagnostic(current, scoreConfig, diagnosticPanel) {
   }
 
   diagnosticPanel.style.display = 'block';
+
+  const regimeRowHTML = `
+    <div class="cond-row">
+      <span class="cond-name">Régimen — slope Kijun & distancia > 0.5×ATR</span>
+      <span class="${current.regime === 'TREND' ? 'cond-ok' : 'cond-fail'}">
+        ${current.regime === 'TREND' ? '✔ TREND' : '✗ RANGE'}
+      </span>
+    </div>
+  `;
 
   const coreRowsHTML = current.coreDetail.map(d => `
     <div class="cond-row">
@@ -182,11 +148,11 @@ function renderDiagnostic(current, scoreConfig, diagnosticPanel) {
         </div>
       `;
     }
-    if (d.penalty) {
+    if (d.warn) {
       return `
         <div class="cond-row">
           <span class="cond-name">${d.name}</span>
-          <span class="cond-fail">⊖ ${d.pts}</span>
+          <span class="cond-bonus-fail" style="color:var(--yellow)">⚠ revisar</span>
         </div>
       `;
     }
@@ -212,6 +178,7 @@ function renderDiagnostic(current, scoreConfig, diagnosticPanel) {
   diagnosticPanel.innerHTML = `
     <div class="panel-title">Diagnóstico — última barra</div>
     <div class="section-label">◆ Condiciones core (max 100 pts)</div>
+    ${regimeRowHTML}
     ${coreRowsHTML}
     <div class="section-label" style="margin-top:14px">⊕ Confirmaciones adicionales (bonus, max +20 pts)</div>
     ${bonusRowsHTML}
