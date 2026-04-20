@@ -99,12 +99,44 @@ function renderMetrics(bt, current, atrPer, scoreConfig, calib) {
     </div>
   `;
 
+  const absItems = [
+    ['señales',    totalSignals],
+    ['winRate',    `${winRateAbs}%`],
+    ['expectancy', `${expectancyAbs}R`],
+    ['totalR',     `${totalRAbs}R`],
+    ['maxDD',      `${maxDDAbs}R`],
+    ['régimen',    regimeAbs],
+    ['core',       coreAbs],
+    ['totalScore', totalScoreAbs],
+    [`atr${atrPer}`, atrAbs],
+    ['nube',       `${cloudAbs}%`],
+    ['tk',         `${tkAbs}%`],
+    ['pullback',   pbAbs],
+    ['reversal',   pattern],
+    ['volumen',    volStatus],
+    ['calibNube',  `${calibCloudPct}%`],
+    ['calibATR',   `${calibAtrPct}%`],
+    ['calibTK',    `${calibTkPct}%`],
+  ];
+
+  const colSize = Math.ceil(absItems.length / 3);
+  const cols = [absItems.slice(0, colSize), absItems.slice(colSize, colSize * 2), absItems.slice(colSize * 2)];
+
+  const renderCol = (items) => items.map(([k, v]) => `
+    <div class="abs-row">
+      <span class="abs-key">${k}</span>
+      <span class="abs-val">${v}</span>
+    </div>
+  `).join('');
+
   metricsGrid.innerHTML = signalBox + `
-    <div class="metric-card" style="padding:10px 12px;min-height:auto;">
-      <div class="metric-label" style="margin-bottom:6px;">Valores absolutos (sin condicionales)</div>
-      <span class="metric-value accent" style="display:block;font-size:13px;line-height:1.6;font-family:var(--mono);font-weight:500;">
-        señales=${totalSignals} | winRate=${winRateAbs}% | expectancy=${expectancyAbs}R | totalR=${totalRAbs}R | maxDD=${maxDDAbs}R | régimen=${regimeAbs} | core=${coreAbs} | totalScore=${totalScoreAbs} | atr${atrPer}=${atrAbs} | nube=${cloudAbs}% | tk=${tkAbs}% | pullback=${pbAbs} | reversal=${pattern} | volumen=${volStatus} | calibNube=${calibCloudPct}% | calibATR=${calibAtrPct}% | calibTK=${calibTkPct}%
-      </span>
+    <div class="abs-panel">
+      <div class="metric-label">Valores absolutos (sin condicionales)</div>
+      <div class="abs-grid">
+        <div class="abs-col">${renderCol(cols[0])}</div>
+        <div class="abs-col">${renderCol(cols[1])}</div>
+        <div class="abs-col">${renderCol(cols[2])}</div>
+      </div>
     </div>
   `;
 }
