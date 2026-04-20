@@ -31,7 +31,6 @@ npm-debug.log*
 # Misc
 reference/
 docs/
-assets/
 
 # Config
 config.js

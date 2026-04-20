@@ -9,18 +9,23 @@ import { volumeConfirm } from './volume.js';
 export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin) {
   let coreScore = 0;
   const coreDetail = [];
-  
-  const minPct = cloudThicknessMin != null ? (cloudThicknessMin * 100).toFixed(2) : '0.50';
-  
-  // Tendencia (25 pts)
-  coreScore += cond.trend ? 25 : 0;
+
+  const minPct = cloudThicknessMin != null ? (cloudThicknessMin * 100).toFixed(2) : '0.30';
+
+  // Tendencia: 25 si strong, 20 si valida pero debil
+  const trendPts = cond.trend ? (cond.trendStrong ? 25 : 20) : 0;
+  coreScore += trendPts;
   coreDetail.push({
-    name: 'Tendencia — Tenkan > Kijun & precio > Kijun',
+    name: cond.trend
+      ? (cond.trendStrong
+          ? 'Tendencia — fuerte (Tenkan/Kijun bien separados)'
+          : 'Tendencia — valida pero debil (spread TK bajo)')
+      : 'Tendencia — Tenkan > Kijun & precio > Kijun',
     ok: cond.trend,
-    pts: cond.trend ? 25 : 0,
+    pts: trendPts,
     max: 25
   });
-  
+
   // Nube (25 pts) - con detalle de espesor
   coreScore += cond.cloud ? 25 : 0;
   const cloudPct = cloudThickness != null ? (cloudThickness * 100).toFixed(2) + '%' : '—';
@@ -35,7 +40,7 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
     pts: cond.cloud ? 25 : 0,
     max: 25
   });
-  
+
   // Pullback ATR (20 pts)
   let pbPts = 0;
   if (pbType === 'SUPERFICIAL') pbPts = 20;
@@ -47,7 +52,7 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
     pts: pbPts,
     max: 20
   });
-  
+
   // Rebote (15 pts)
   coreScore += cond.bounce ? 15 : 0;
   coreDetail.push({
@@ -56,7 +61,7 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
     pts: cond.bounce ? 15 : 0,
     max: 15
   });
-  
+
   // Chikou (15 pts)
   coreScore += cond.chikou ? 15 : 0;
   coreDetail.push({
@@ -65,11 +70,11 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
     pts: cond.chikou ? 15 : 0,
     max: 15
   });
-  
+
   // Bonus
   let bonusScore = 0;
   const bonusDetail = [];
-  
+
   // Reversal (+10 pts)
   const revOk = reversal.ok;
   bonusScore += revOk ? 10 : 0;
@@ -83,7 +88,7 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
     bonus: true
   });
   
-  // Volumen (+10 / -8 / 0)
+  // Volumen (+10 / 0 / 0): warning visual si es alto, sin penalizacion.
   if (volCheck === null) {
     bonusDetail.push({
       name: 'Volumen pullback (sin datos en CSV)',
@@ -104,15 +109,14 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
       bonus: true
     });
   } else {
-    bonusScore -= 8;
     bonusDetail.push({
-      name: 'Volumen alto en pullback (distribución -8)',
+      name: 'Volumen alto en pullback — revisar manualmente',
       ok: false,
-      pts: -8,
+      pts: 0,
       max: 10,
       nodata: false,
       bonus: true,
-      penalty: true
+      warn: true
     });
   }
   
@@ -126,38 +130,61 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
 }
 
 export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, rawDataForVol, calib) {
-  const s = dSlow[i], prev = dSlow[i-1], f = dFast[i];
+  const s = dSlow[i], prev = dSlow[i - 1], f = dFast[i];
   if (!s || !f || !s.kijun || !f.kijun || !s.senkouA || !s.senkouB) return null;
-  
-  // v9: pasar calib a detectRegime
+
   const regime = detectRegime(dSlow, i, atrArr, calib);
   const cloudTop = Math.max(s.senkouA, s.senkouB);
   const atrVal = atrArr ? atrArr[i] : null;
-  const pbType = pullbackType(f, atrVal);
-  
-  // Cloud thickness
+
+  // Pullback lookback (ultimas 3 barras del fast TF)
+  let pbType = 'NO_PULLBACK';
+  let pbLb = 0;
+  const LOOKBACK = 3;
+  for (let lb = 0; lb < LOOKBACK; lb++) {
+    const lbIdx = i - lb;
+    if (lbIdx < 0) break;
+    const fBar = dFast[lbIdx];
+    const atrLb = atrArr ? atrArr[lbIdx] : null;
+    const pt = pullbackType(fBar, atrLb);
+    if (pt === 'SUPERFICIAL' || pt === 'NORMAL') {
+      pbType = pt;
+      pbLb = lb;
+      break;
+    }
+    if (pt === 'PROFUNDO' && pbType === 'NO_PULLBACK') {
+      pbType = 'PROFUNDO';
+      pbLb = lb;
+    }
+  }
+
   const cloudThickness = Math.abs(s.senkouA - s.senkouB) / s.close;
-  
-  // v9: usar umbral calibrado del instrumento en lugar de 0.005 fijo
-  const cloudThicknessMin = calib?.cloudThicknessMin ?? 0.005;
-  
+
+  const cloudThicknessMin = calib?.cloudThicknessMin ?? 0.003;
+
+  const trendStrength = (s.tenkan !== undefined && s.kijun && s.close > 0)
+    ? Math.abs(s.tenkan - s.kijun) / s.close
+    : 0;
+  const tkSpreadMin = calib?.tkSpreadMin ?? 0.003;
+
   const cond = {
-    trend:   s.tenkan !== undefined && s.tenkan > s.kijun && s.close > s.kijun,
-    cloud:   s.close > cloudTop &&
-             s.senkouA > s.senkouB &&
-             prev && s.senkouA > (prev.senkouA || 0) &&
-             cloudThickness > cloudThicknessMin,    // ← umbral calibrado
-    bounce:  f.close > f.kijun,
-    chikou:  chikouClear(dSlow, i, kijunSlow)
+    trend: s.tenkan !== undefined && s.tenkan > s.kijun && s.close > s.kijun,
+    trendStrong: trendStrength > tkSpreadMin,
+    cloud: s.close > cloudTop &&
+           s.senkouA > s.senkouB &&
+           prev && s.senkouA > (prev.senkouA || 0) &&
+           cloudThickness > cloudThicknessMin,
+    bounce: f.close > f.kijun,
+    chikou: chikouClear(dSlow, i, kijunSlow)
   };
-  
-  const reversal = detectReversal(dFast, i);
+
+  const reversal = detectReversal(dFast, i, pbLb);
   const volCheck = volumeConfirm(rawDataForVol, i);
-  const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } = 
+  const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } =
     calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin);
   const { coreMin, totalMin } = scoreConfig;
   const valid = regime === 'TREND' && coreScore >= coreMin && totalScore >= totalMin;
-  
+
   return {
     valid,
     coreScore,
@@ -169,6 +196,8 @@ export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, raw
     pbType,
     atrVal,
     cloudThickness,
-    cloudThicknessMin
+    cloudThicknessMin,
+    trendStrength,
+    tkSpreadMin
   };
 }

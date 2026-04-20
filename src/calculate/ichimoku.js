@@ -1,22 +1,50 @@
 // src/calculate/ichimoku.js
 // Funciones para cálculo de Ichimoku optimizado
 
-// Rolling max/min con deque
+class MonotonicQueue {
+  constructor(comparator) {
+    this.queue = [];
+    this.comparator = comparator;
+  }
+  push(idx, getValue) {
+    const val = getValue(idx);
+    while (this.queue.length && this.comparator(val, getValue(this.queue[this.queue.length - 1]))) {
+      this.queue.pop();
+    }
+    this.queue.push(idx);
+  }
+  pop(idx) {
+    if (this.queue.length && this.queue[0] === idx) this.queue.shift();
+  }
+  max(getValue) {
+    if (!this.queue.length) return null;
+    return getValue(this.queue[0]);
+  }
+}
+
+// Rolling max/min con deque monotono O(n)
 function rollingMaxMin(high, low, period) {
   const n = high.length;
+  const maxQueue = new MonotonicQueue((a, b) => a >= b);
+  const minQueue = new MonotonicQueue((a, b) => a <= b);
   const resultHigh = new Array(n).fill(null);
-  const resultLow  = new Array(n).fill(null);
+  const resultLow = new Array(n).fill(null);
+
   for (let i = 0; i < n; i++) {
-    let max = -Infinity, min = Infinity;
-    for (let j = Math.max(0, i - period + 1); j <= i; j++) {
-      if (high[j] > max) max = high[j];
-      if (low[j] < min) min = low[j];
+    maxQueue.push(i, idx => high[idx]);
+    minQueue.push(i, idx => low[idx]);
+
+    if (i >= period) {
+      maxQueue.pop(i - period);
+      minQueue.pop(i - period);
     }
-    if (i >= period-1) {
-      resultHigh[i] = max;
-      resultLow[i]  = min;
+
+    if (i >= period - 1) {
+      resultHigh[i] = maxQueue.max(idx => high[idx]);
+      resultLow[i] = minQueue.max(idx => low[idx]);
     }
   }
+
   return { maxHigh: resultHigh, minLow: resultLow };
 }
 

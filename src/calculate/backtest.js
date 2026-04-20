@@ -21,14 +21,13 @@
  *   Si idx+1 está fuera del array (trade en el borde), skip el trade.
  *   El fallback anterior (prices[idx]) usaba un precio imposible.
  * 
- * @param {Array} dSlow - Datos con Ichimoku slow TF
  * @param {Array} dFast - Datos con Ichimoku fast TF
  * @param {Array} prices - Array de precios close
  * @param {Array} sigIndices - Índices de señales válidas
  * @param {Array} rawData - Datos originales con open para gap filter
  * @returns {Object} Resultados del backtest
  */
-export function runBacktest(dSlow, dFast, prices, sigIndices, rawData) {
+export function runBacktest(dFast, prices, sigIndices, rawData) {
   let wins = 0, losses = 0, cumR = 0, maxCumR = 0, maxDD = 0;
   const equity = [0];
   

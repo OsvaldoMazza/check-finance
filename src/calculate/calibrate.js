@@ -35,20 +35,16 @@ export function calibrateParams(slow, atrArr, N) {
 
   for (let i = 60; i < N; i++) {
     const s = slow[i];
-    if (!s || !s.senkouA || !s.senkouB || !s.close) continue;
+    if (!s || !s.senkouA || !s.senkouB || !s.close || s.close <= 0) continue;
     
     // Espesor de la nube normalizado
-    const cloudThick = Math.abs(s.senkouA - s.senkouB) / s.close;
-    if (cloudThick > 0) thicknesses.push(cloudThick);
+    thicknesses.push(Math.abs(s.senkouA - s.senkouB) / s.close);
     
     // ATR normalizado
     if (atrArr[i]) atrNorms.push(atrArr[i] / s.close);
 
     // Spread Tenkan-Kijun normalizado
-    if (s.tenkan !== undefined && s.kijun) {
-      const tkSpread = Math.abs(s.tenkan - s.kijun) / s.close;
-      if (tkSpread > 0) tkSpreads.push(tkSpread);
-    }
+    if (s.tenkan !== undefined && s.kijun) tkSpreads.push(Math.abs(s.tenkan - s.kijun) / s.close);
   }
 
   // Función de percentil (ordena y extrae)
@@ -60,12 +56,12 @@ export function calibrateParams(slow, atrArr, N) {
   };
 
   return {
-    // cloudThicknessMin: p35 → exige nube en el 65% superior de la historia
-    cloudThicknessMin: pct(thicknesses, 0.35) ?? 0.005,
+    // cloudThicknessMin: p20 → exige nube en el 80% superior de la historia
+    cloudThicknessMin: pct(thicknesses, 0.20) ?? 0.003,
     // atrNormMedian: mediana del ATR normalizado del instrumento
     atrNormMedian:     pct(atrNorms, 0.50)    ?? 0.01,
-    // tkSpreadMin: p40 del spread TK → fuerza de tendencia mínima
-    tkSpreadMin:       pct(tkSpreads, 0.40)   ?? 0.005,
+    // tkSpreadMin: p25 del spread TK
+    tkSpreadMin:       pct(tkSpreads, 0.25)   ?? 0.003,
     // Guardar los raw para mostrar en UI
     _thicknesses: thicknesses,
     _atrNorms:    atrNorms,
