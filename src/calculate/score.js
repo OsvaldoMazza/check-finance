@@ -9,113 +9,95 @@ import { volumeConfirm } from './volume.js';
 export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin) {
   let coreScore = 0;
   const coreDetail = [];
-  
-  const minPct = cloudThicknessMin != null ? (cloudThicknessMin * 100).toFixed(2) : '0.50';
-  
+  const minPct = cloudThicknessMin != null ? (cloudThicknessMin * 100).toFixed(2) : '0.30';
+
   // Tendencia (25 pts)
   coreScore += cond.trend ? 25 : 0;
   coreDetail.push({
-    name: 'Tendencia — Tenkan > Kijun & precio > Kijun',
+    name: cond.trend
+      ? 'Tendencia - Tenkan > Kijun y precio > Kijun'
+      : 'Tendencia - Tenkan > Kijun y precio > Kijun',
     ok: cond.trend,
     pts: cond.trend ? 25 : 0,
     max: 25
   });
-  
-  // Nube (25 pts) - con detalle de espesor
+
+  // Nube (25 pts)
+  const cloudPct = cloudThickness != null ? (cloudThickness * 100).toFixed(2) + '%' : '-';
   coreScore += cond.cloud ? 25 : 0;
-  const cloudPct = cloudThickness != null ? (cloudThickness * 100).toFixed(2) + '%' : '—';
-  const cloudName = cond.cloud
-    ? `Nube — bullish, expansión, espesor ${cloudPct} (mín ${minPct}%)`
-    : cloudThickness != null && cloudThickness <= (cloudThicknessMin ?? 0.005)
-      ? `Nube — delgada (${cloudPct} < ${minPct}%) — soporte débil`
-      : `Nube — precio bajo o sin expansión (espesor ${cloudPct})`;
   coreDetail.push({
-    name: cloudName,
+    name: cond.cloud
+      ? `Nube - bullish, expansion, espesor ${cloudPct} (min ${minPct}%)`
+      : `Nube - falla filtro de soporte/expansion (espesor ${cloudPct})`,
     ok: cond.cloud,
     pts: cond.cloud ? 25 : 0,
     max: 25
   });
-  
-  // Pullback ATR (20 pts)
-  let pbPts = 0;
-  if (pbType === 'SUPERFICIAL') pbPts = 20;
-  else if (pbType === 'NORMAL') pbPts = 10;
-  coreScore += pbPts;
+
+  // Rebote (25 pts)
+  coreScore += cond.bounce ? 25 : 0;
   coreDetail.push({
-    name: `Pullback ATR (${pbType})`,
-    ok: pbPts > 0,
-    pts: pbPts,
-    max: 20
-  });
-  
-  // Rebote (15 pts)
-  coreScore += cond.bounce ? 15 : 0;
-  coreDetail.push({
-    name: 'Rebote — close > Kijun fast TF',
+    name: 'Rebote - close > Kijun fast',
     ok: cond.bounce,
-    pts: cond.bounce ? 15 : 0,
-    max: 15
+    pts: cond.bounce ? 25 : 0,
+    max: 25
   });
-  
-  // Chikou (15 pts)
-  coreScore += cond.chikou ? 15 : 0;
+
+  // Chikou (25 pts)
+  coreScore += cond.chikou ? 25 : 0;
   coreDetail.push({
-    name: 'Chikou — close actual sobre máximos previos',
+    name: 'Chikou - close actual sobre high de referencia',
     ok: cond.chikou,
-    pts: cond.chikou ? 15 : 0,
-    max: 15
+    pts: cond.chikou ? 25 : 0,
+    max: 25
   });
-  
+
   // Bonus
   let bonusScore = 0;
   const bonusDetail = [];
-  
+
   // Reversal (+10 pts)
   const revOk = reversal.ok;
   bonusScore += revOk ? 10 : 0;
   bonusDetail.push({
-    name: `Patrón reversal (${reversal.pattern})`,
+    name: `Patron reversal (${reversal.pattern})`,
     pattern: reversal.pattern,
     ok: revOk,
     pts: revOk ? 10 : 0,
     max: 10,
-    nodata: false,
     bonus: true
   });
-  
-  // Volumen (+10 / -8 / 0)
+
+  // Volumen (+10 pts)
   if (volCheck === null) {
     bonusDetail.push({
-      name: 'Volumen pullback (sin datos en CSV)',
+      name: 'Volumen confirmacion (sin datos en CSV)',
       ok: null,
       pts: 0,
       max: 10,
       nodata: true,
       bonus: true
     });
-  } else if (volCheck === true) {
+  } else if (volCheck) {
     bonusScore += 10;
     bonusDetail.push({
-      name: 'Volumen pullback < 80% media (saludable)',
+      name: 'Volumen < 80% media (confirmacion)',
       ok: true,
       pts: 10,
       max: 10,
-      nodata: false,
       bonus: true
     });
   } else {
-    bonusScore -= 8;
     bonusDetail.push({
-      name: 'Volumen alto en pullback (distribución -8)',
+      name: 'Volumen alto - revisar manualmente',
       ok: false,
-      pts: -8,
+      pts: 0,
       max: 10,
-      nodata: false,
       bonus: true,
-      penalty: true
+      warn: true
     });
   }
-  
+
   return {
     coreScore,
     bonusScore,
