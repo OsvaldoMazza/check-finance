@@ -110,19 +110,19 @@ export function calculateScore(cond, pbType, reversal, volCheck, cloudThickness,
 export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, rawDataForVol, calib) {
   const s = dSlow[i], prev = dSlow[i-1], f = dFast[i];
   if (!s || !f || !s.kijun || !f.kijun || !s.senkouA || !s.senkouB) return null;
-  
+
   // v9: pasar calib a detectRegime
   const regime = detectRegime(dSlow, i, atrArr, calib);
   const cloudTop = Math.max(s.senkouA, s.senkouB);
   const atrVal = atrArr ? atrArr[i] : null;
   const pbType = pullbackType(f, atrVal);
-  
+
   // Cloud thickness
   const cloudThickness = Math.abs(s.senkouA - s.senkouB) / s.close;
-  
+
   // v9: usar umbral calibrado del instrumento en lugar de 0.005 fijo
   const cloudThicknessMin = calib?.cloudThicknessMin ?? 0.005;
-  
+
   const cond = {
     trend:   s.tenkan !== undefined && s.tenkan > s.kijun && s.close > s.kijun,
     cloud:   s.close > cloudTop &&
@@ -132,14 +132,14 @@ export function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, raw
     bounce:  f.close > f.kijun,
     chikou:  chikouClear(dSlow, i, kijunSlow)
   };
-  
+
   const reversal = detectReversal(dFast, i);
   const volCheck = volumeConfirm(rawDataForVol, i);
-  const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } = 
+  const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } =
     calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin);
   const { coreMin, totalMin } = scoreConfig;
   const valid = regime === 'TREND' && coreScore >= coreMin && totalScore >= totalMin;
-  
+
   return {
     valid,
     coreScore,
