@@ -963,7 +963,7 @@ const API_CONFIG = {
   },
   coingecko: {
     baseUrl: 'https://api.coingecko.com/api/v3',
-    apiKey: 'CG-vSJmiAGseBKkoHeHkgUMMotQ',
+    apiKey: '', // API key gratuita - obtén la tuya en coingecko.com
     endpoints: {
       coinsList: '/coins/markets',
       ohlc: '/coins/{id}/ohlc'
@@ -971,7 +971,7 @@ const API_CONFIG = {
   },
   twelvedata: {
     baseUrl: 'https://api.twelvedata.com',
-    apiKey: 'a781689d1b1a44dfb31a0c11daecd71b',
+    apiKey: '', // API key gratuita - obtén la tuya en twelvedata.com
     endpoints: {
       timeSeries: '/time_series'
     },
@@ -981,6 +981,74 @@ const API_CONFIG = {
       format: 'JSON'
     }
   }
+};
+
+// ========================================
+// DATOS MOCK PARA DESARROLLO OFFLINE
+// ========================================
+
+const MOCK_CRYPTO_DATA = [
+  { id: 'bitcoin', name: 'Bitcoin', symbol: 'BTC', type: 'crypto' },
+  { id: 'ethereum', name: 'Ethereum', symbol: 'ETH', type: 'crypto' },
+  { id: 'tether', name: 'Tether', symbol: 'USDT', type: 'crypto' },
+  { id: 'bnb', name: 'BNB', symbol: 'BNB', type: 'crypto' },
+  { id: 'solana', name: 'Solana', symbol: 'SOL', type: 'crypto' }
+];
+
+const MOCK_STOCK_DATA = [
+  { id: 'AAPL', name: 'Apple Inc.', symbol: 'AAPL', type: 'acciones' },
+  { id: 'MSFT', name: 'Microsoft Corporation', symbol: 'MSFT', type: 'acciones' },
+  { id: 'GOOGL', name: 'Alphabet Inc.', symbol: 'GOOGL', type: 'acciones' },
+  { id: 'TSLA', name: 'Tesla Inc.', symbol: 'TSLA', type: 'acciones' },
+  { id: 'AMZN', name: 'Amazon.com Inc.', symbol: 'AMZN', type: 'acciones' }
+];
+
+// Función para generar datos OHLCV mock realistas
+function generateMockData(symbol, basePrice, days = 150, volatility = 0.02) {
+  const data = [];
+  let price = basePrice;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  for (let i = 0; i < days; i++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+
+    // Generar movimiento de precio con volatilidad
+    const change = (Math.random() - 0.5) * 2 * volatility;
+    const open = price;
+    const close = price * (1 + change);
+    const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5);
+    const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5);
+    const volume = symbol.includes('AAPL') ? Math.floor(Math.random() * 100000000) + 20000000 : null;
+
+    data.push({
+      date: date.toISOString().slice(0, 10),
+      open: Math.round(open * 100) / 100,
+      high: Math.round(high * 100) / 100,
+      low: Math.round(low * 100) / 100,
+      close: Math.round(close * 100) / 100,
+      volume: volume
+    });
+
+    price = close;
+  }
+
+  return data;
+}
+
+// Datos OHLCV mock generados dinámicamente
+const MOCK_PRICE_DATA = {
+  bitcoin: generateMockData('BTC', 45000, 150, 0.03),
+  ethereum: generateMockData('ETH', 2800, 150, 0.04),
+  tether: generateMockData('USDT', 1.00, 150, 0.001),
+  bnb: generateMockData('BNB', 300, 150, 0.05),
+  solana: generateMockData('SOL', 120, 150, 0.08),
+  AAPL: generateMockData('AAPL', 180, 150, 0.02),
+  MSFT: generateMockData('MSFT', 380, 150, 0.025),
+  GOOGL: generateMockData('GOOGL', 140, 150, 0.03),
+  TSLA: generateMockData('TSLA', 250, 150, 0.06),
+  AMZN: generateMockData('AMZN', 155, 150, 0.035)
 };
 
 // ========================================
@@ -1693,31 +1761,45 @@ async function loadAssetList(connector, { onStatus, setSearchPlaceholder, disabl
     setSearchPlaceholder?.('⌛ Cargando activos...');
 
     if (connector === 'coingecko') {
-      const apiConfig = {
-        endpoint: API_CONFIG.coingecko.endpoints.coinsList,
-        params: {
-          vs_currency: 'usd',
-          order: 'market_cap_desc',
-          per_page: 100,
-          page: 1,
-          sparkline: false
-        },
-        apiKey: API_CONFIG.coingecko.apiKey
-      };
-      const coins = await loadData({ type: 'api', apiConfig });
-      coins.forEach(c => c.type = 'crypto');
-      setSearchPlaceholder?.('🔍 Buscar criptomoneda...');
-      onStatus?.(`${coins.length} criptomonedas disponibles. Listo para conectar.`);
-      console.log(`[OK] Cargadas ${coins.length} criptomonedas desde CoinGecko`);
-      return coins;
+      try {
+        const apiConfig = {
+          endpoint: API_CONFIG.coingecko.endpoints.coinsList,
+          params: {
+            vs_currency: 'usd',
+            order: 'market_cap_desc',
+            per_page: 100,
+            page: 1,
+            sparkline: false
+          },
+          apiKey: API_CONFIG.coingecko.apiKey
+        };
+        const coins = await loadData({ type: 'api', apiConfig });
+        coins.forEach(c => c.type = 'crypto');
+        setSearchPlaceholder?.('🔍 Buscar criptomoneda...');
+        onStatus?.(`${coins.length} criptomonedas disponibles. Listo para conectar.`);
+        console.log(`[OK] Cargadas ${coins.length} criptomonedas desde CoinGecko`);
+        return coins;
+      } catch (apiErr) {
+        console.warn('[WARN] API CoinGecko falló, usando datos mock:', apiErr.message);
+        setSearchPlaceholder?.('🔍 Buscar criptomoneda (modo offline)...');
+        onStatus?.(`⚠️ Modo offline: ${MOCK_CRYPTO_DATA.length} criptos mock disponibles.`);
+        return MOCK_CRYPTO_DATA;
+      }
 
     } else if (connector === 'twelvedata') {
-      const stocks = await loadTwelveDataStocks();
-      stocks.forEach(c => c.type = 'acciones');
-      setSearchPlaceholder?.('🔍 Buscar acción/bono...');
-      onStatus?.(`${stocks.length} activos disponibles. Listo para conectar.`);
-      console.log(`[OK] Cargados ${stocks.length} activos desde TwelveData`);
-      return stocks;
+      try {
+        const stocks = await loadTwelveDataStocks();
+        stocks.forEach(c => c.type = 'acciones');
+        setSearchPlaceholder?.('🔍 Buscar acción/bono...');
+        onStatus?.(`${stocks.length} activos disponibles. Listo para conectar.`);
+        console.log(`[OK] Cargados ${stocks.length} activos desde TwelveData`);
+        return stocks;
+      } catch (apiErr) {
+        console.warn('[WARN] API TwelveData falló, usando datos mock:', apiErr.message);
+        setSearchPlaceholder?.('🔍 Buscar acción (modo offline)...');
+        onStatus?.(`⚠️ Modo offline: ${MOCK_STOCK_DATA.length} acciones mock disponibles.`);
+        return MOCK_STOCK_DATA;
+      }
     }
 
     return [];
@@ -1726,8 +1808,10 @@ async function loadAssetList(connector, { onStatus, setSearchPlaceholder, disabl
     console.error('Error cargando lista de activos:', err);
     setSearchPlaceholder?.('❌ Error al cargar activos');
     disableSearch?.();
-    onStatus?.('Error al cargar lista de activos. Intenta recargar la página.');
-    return [];
+    onStatus?.('Error al cargar lista de activos. Usando modo offline.');
+
+    // Fallback final: datos mock
+    return connector === 'coingecko' ? MOCK_CRYPTO_DATA : MOCK_STOCK_DATA;
   }
 }
 
@@ -2428,10 +2512,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     } catch (err) {
       console.error('[ERROR] Error API:', err);
-      setStatus(`Error al conectar a API: ${err.message || err}`);
-      isApiConnected = false;
-      btnApi.classList.remove('connected');
-      updateUIState();
+
+      // Fallback: usar datos mock si APIs fallan
+      if (MOCK_PRICE_DATA[assetId]) {
+        console.warn('[WARN] Usando datos mock para análisis');
+        const data = MOCK_PRICE_DATA[assetId];
+        apiData  = data;
+        fullData = data;
+        const filtered = filterDataByPeriod(data, samplePeriod.value);
+        isApiConnected = true;
+        btnApi.textContent = '🔴 Desconectar API';
+        btnApi.classList.add('connected');
+        updateUIState();
+        setStatus(`⚠️ Modo offline: ${data.length} puntos mock de ${assetName}. Mostrando últimos ${filtered.length}.`);
+        renderDashboard(filtered, chartArea, diagnosticPanel, {
+          assetType: currentConnector === 'coingecko' ? 'crypto' : 'acciones'
+        });
+      } else {
+        setStatus(`Error al conectar a API: ${err.message || err}`);
+        isApiConnected = false;
+        btnApi.classList.remove('connected');
+        updateUIState();
+      }
     }
   }
 
