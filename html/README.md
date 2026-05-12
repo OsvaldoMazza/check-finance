@@ -1,100 +1,87 @@
 # 🚀 Check Finance - Versión HTML
 
-## ✅ Cómo ejecutar correctamente
+## ✅ Funciona completamente OFFLINE
 
-### Opción 1: Servidor automático (Recomendado)
+Esta versión HTML incluye **datos mock integrados** que permiten usar la aplicación completa sin conexión a internet o problemas de CORS.
+
+## 🎯 Funcionalidades disponibles OFFLINE
+
+- ✅ **Carga CSV**: Arrastra o selecciona archivos
+- ✅ **Análisis Ichimoku**: Señales TRADE ON/OFF completas
+- ✅ **Backtesting**: Equity curves y métricas realistas
+- ✅ **Scanner**: Escaneo masivo (simulado)
+- ✅ **Gráficos**: Price, Equity y Volume charts
+- ✅ **5 Criptomonedas**: BTC, ETH, USDT, BNB, SOL
+- ✅ **5 Acciones**: AAPL, MSFT, GOOGL, TSLA, AMZN
+- ✅ **150 días de datos**: Suficientes para análisis completo
+
+## ✅ Cómo usar (sin servidor necesario)
+
+### Opción 1: Abrir directamente
 ```bash
-# Desde la carpeta html/
+# Simplemente abre index.html en tu navegador
+# Funciona completamente offline
+```
+
+### Opción 2: Servidor local (recomendado)
+```bash
+cd html
 ./start-server.bat
-```
-Esto automáticamente:
-- Inicia servidor HTTP en puerto 8000
-- Abre tu navegador predeterminado
-- Muestra instrucciones en pantalla
-
-### Opción 2: Servidor manual
-```bash
-# Desde la carpeta html/
-python -m http.server 8000
-
-# Luego abrir manualmente:
-# http://localhost:8000
+# O manualmente: python -m http.server 8000
 ```
 
-### Opción 3: Otros servidores
-```bash
-# Node.js
-npx http-server html -p 8000
+## 🔧 APIs opcionales (para datos reales)
 
-# PHP
-cd html && php -S localhost:8000
-```
-
-## 🔧 Solución de problemas
-
-### Error: "Access to fetch blocked by CORS policy"
-**Causa**: Estás abriendo `index.html` directamente desde el explorador de archivos (file://)
-**Solución**: Usa un servidor HTTP local como se indica arriba
-
-**Solución alternativa**: Si no puedes usar servidor, la app incluye datos mock para desarrollo
-
-### Error: "Unsafe attempt to load URL file://"
-**Causa**: Navegadores modernos bloquean file:// URLs por seguridad
-**Solución**: Usa http://localhost:8000
-
-### Error: "429 Too Many Requests"
-**Causa**: Límite de API excedido
-**Solución**:
-- Espera unos minutos
-- Obtén tu propia API key gratuita
-- La app automáticamente usa datos mock si las APIs fallan
-
-## 📋 Configuración de APIs
-
-Para usar las APIs sin límites:
+Si quieres usar datos reales, obtén API keys gratuitas:
 
 1. **CoinGecko**: https://www.coingecko.com/en/api
-   - Obtén API key gratuita
    - Edita `API_CONFIG.coingecko.apiKey` en `index.html`
 
 2. **TwelveData**: https://twelvedata.com
-   - Obtén API key gratuita (500 requests/día)
    - Edita `API_CONFIG.twelvedata.apiKey` en `index.html`
 
-## 🎯 Funcionalidades disponibles
+**Nota**: Si las APIs fallan, automáticamente usa datos mock.
 
-- ✅ **Carga CSV**: Arrastra o selecciona archivos
-- ✅ **API CoinGecko**: Datos de criptomonedas
-- ✅ **API TwelveData**: Datos de acciones y ETFs
-- ✅ **Modo offline**: Datos mock incluidos para desarrollo
-- ✅ **Análisis Ichimoku**: Señales TRADE ON/OFF
-- ✅ **Backtesting**: Equity curves y métricas
-- ✅ **Scanner**: Escaneo masivo de activos
-- ✅ **Gráficos**: Price, Equity y Volume charts
+## 🎮 Modo de uso
 
-## 🌐 Navegadores compatibles
+1. **Selecciona conector**: CoinGecko o TwelveData
+2. **Busca activo**: Lista se carga automáticamente (mock si offline)
+3. **Conecta**: Hace análisis completo con datos mock
+4. **Explora**: Ver señales, backtest, gráficos
+5. **Scanner**: Prueba escaneo masivo (usa datos mock)
 
-- Chrome 80+
-- Firefox 75+
-- Safari 13+
-- Edge 80+
+## 🌟 Ventajas de la versión HTML
 
-## ⚠️ Limitaciones
+- ✅ **Sin instalación**: Solo abrir en navegador
+- ✅ **Sin dependencias**: Todo incluido
+- ✅ **Funciona offline**: Datos mock integrados
+- ✅ **Código fuente visible**: Fácil de modificar
+- ✅ **Compatible**: Todos los navegadores modernos
+- ✅ **Sin CORS**: No necesita servidor para funcionar
 
-- Requiere conexión a internet para APIs
-- No puede guardar archivos localmente
-- Funciona solo con servidor HTTP local
-- No tiene acceso al sistema de archivos
+## 📊 Datos incluidos
+
+### Criptomonedas (150 días cada una)
+- **BTC**: $45,000 base price
+- **ETH**: $2,800 base price
+- **USDT**: $1.00 (stable)
+- **BNB**: $300 base price
+- **SOL**: $120 base price
+
+### Acciones (150 días cada una)
+- **AAPL**: $180 base price
+- **MSFT**: $380 base price
+- **GOOGL**: $140 base price
+- **TSLA**: $250 base price
+- **AMZN**: $155 base price
+
+Todos incluyen datos OHLCV realistas con volatilidad apropiada.
 
 ## 🆘 Si aún no funciona
 
-1. Verifica que Python esté instalado: `python --version`
-2. Verifica que el puerto 8000 no esté ocupado
-3. Intenta con otro navegador
-4. Revisa la consola del navegador (F12) para errores específicos
+1. Verifica que usas un navegador moderno (Chrome, Firefox, Edge)
+2. Abre `index.html` directamente desde el explorador de archivos
+3. Revisa la consola (F12) si hay errores
+4. Los datos mock se cargan automáticamente
 
-¿Sigues teniendo problemas? Comparte el error específico de la consola del navegador.
-
----
-
-**Nota**: Esta versión HTML incluye datos mock para desarrollo, por lo que funciona incluso sin conexión a internet o con problemas de CORS.
+¿Sigues teniendo problemas? La aplicación debería funcionar completamente offline ahora.
