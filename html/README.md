@@ -1,82 +1,100 @@
-# Check Finance - HTML Version
+# 🚀 Check Finance - Versión HTML
 
-Esta es la versión HTML de Check Finance, una aplicación de análisis técnico con Ichimoku Cloud para criptomonedas y acciones.
+## ✅ Cómo ejecutar correctamente
 
-## Características
+### Opción 1: Servidor automático (Recomendado)
+```bash
+# Desde la carpeta html/
+./start-server.bat
+```
+Esto automáticamente:
+- Inicia servidor HTTP en puerto 8000
+- Abre tu navegador predeterminado
+- Muestra instrucciones en pantalla
 
-- **Análisis Ichimoku completo**: Tenkan, Kijun, Senkou A/B, Chikou
-- **Señales TRADE ON/OFF**: Basadas en puntuaciones core y bonus
-- **Backtesting automático**: Con trailing stops y gap filters
-- **API integrada**: CoinGecko para criptos, TwelveData para acciones
-- **Scanner**: Escanea múltiples activos buscando señales TRADE ON
-- **Visualización**: Gráficos interactivos con Chart.js
-- **Configuración**: Personalizable delay y límites del scanner
+### Opción 2: Servidor manual
+```bash
+# Desde la carpeta html/
+python -m http.server 8000
 
-## Cómo usar
+# Luego abrir manualmente:
+# http://localhost:8000
+```
 
-1. **Abrir la aplicación**: Abre `index.html` en tu navegador web
-2. **Cargar datos**:
-   - **CSV**: Haz clic en "📊 Subir CSV" y selecciona tu archivo
-   - **API**: Selecciona conector (CoinGecko/TwelveData), busca un activo y conecta
-3. **Analizar**: La app automáticamente calcula Ichimoku y muestra señales
-4. **Scanner**: Configura activos seleccionados y ejecuta escaneo masivo
+### Opción 3: Otros servidores
+```bash
+# Node.js
+npx http-server html -p 8000
 
-## Archivos incluidos
+# PHP
+cd html && php -S localhost:8000
+```
 
-- `index.html`: Aplicación completa (HTML + CSS + JS)
-- `assets/twelvedata-stocks.json`: Lista de acciones disponibles
+## 🔧 Solución de problemas
 
-## APIs utilizadas
+### Error: "Access to fetch blocked by CORS policy"
+**Causa**: Estás abriendo `index.html` directamente desde el explorador de archivos (file://)
+**Solución**: Usa un servidor HTTP local como se indica arriba
 
-- **CoinGecko**: Para datos de criptomonedas (OHLC histórico)
-- **TwelveData**: Para datos de acciones y ETFs (OHLC histórico)
+**Solución alternativa**: Si no puedes usar servidor, la app incluye datos mock para desarrollo
 
-## Limitaciones de la versión HTML
+### Error: "Unsafe attempt to load URL file://"
+**Causa**: Navegadores modernos bloquean file:// URLs por seguridad
+**Solución**: Usa http://localhost:8000
 
-- No puede ejecutar archivos locales (CORS restrictions)
-- Para usar APIs, necesitas ejecutar un servidor local:
-  ```bash
-  # Desde la carpeta html/
-  python -m http.server 8000
-  # Luego abre http://localhost:8000
-  ```
-- No tiene acceso al sistema de archivos (no puede leer/escribir archivos locales)
-- Funciona mejor en navegadores modernos con ES6+
+### Error: "429 Too Many Requests"
+**Causa**: Límite de API excedido
+**Solución**:
+- Espera unos minutos
+- Obtén tu propia API key gratuita
+- La app automáticamente usa datos mock si las APIs fallan
 
-## Configuración de APIs
+## 📋 Configuración de APIs
 
-Para usar las APIs, necesitas obtener tus propias claves:
+Para usar las APIs sin límites:
 
 1. **CoinGecko**: https://www.coingecko.com/en/api
+   - Obtén API key gratuita
+   - Edita `API_CONFIG.coingecko.apiKey` en `index.html`
+
 2. **TwelveData**: https://twelvedata.com
+   - Obtén API key gratuita (500 requests/día)
+   - Edita `API_CONFIG.twelvedata.apiKey` en `index.html`
 
-Edita las claves en el código fuente de `index.html` en la sección `API_CONFIG`.
+## 🎯 Funcionalidades disponibles
 
-## Soporte de datos
+- ✅ **Carga CSV**: Arrastra o selecciona archivos
+- ✅ **API CoinGecko**: Datos de criptomonedas
+- ✅ **API TwelveData**: Datos de acciones y ETFs
+- ✅ **Modo offline**: Datos mock incluidos para desarrollo
+- ✅ **Análisis Ichimoku**: Señales TRADE ON/OFF
+- ✅ **Backtesting**: Equity curves y métricas
+- ✅ **Scanner**: Escaneo masivo de activos
+- ✅ **Gráficos**: Price, Equity y Volume charts
 
-### CSV
-- Formatos soportados: español (coma decimal) e inglés (punto decimal)
-- Columnas detectadas automáticamente por nombre
-- Fechas: YYYY-MM-DD, DD/MM/YYYY, DD.MM.YYYY
+## 🌐 Navegadores compatibles
 
-### API
-- CoinGecko: Datos OHLCV de criptos (último año)
-- TwelveData: Datos OHLCV de acciones (hasta 1000 barras)
-
-## Algoritmos implementados
-
-- **Ichimoku Cloud**: Cálculo optimizado O(n) con rolling max/min
-- **ATR**: Average True Range para volatilidad
-- **Señales**: Pullback ATR, rebote, Chikou, volumen
-- **Regime detection**: Trend vs Range basado en Kijun slope
-- **Auto-calibración**: Parámetros adaptados al instrumento
-- **Backtest**: Trailing stops con gap filter
-
-## Navegadores soportados
-
-- Chrome/Chromium 80+
+- Chrome 80+
 - Firefox 75+
 - Safari 13+
 - Edge 80+
 
-Requiere JavaScript habilitado y CORS relajado para desarrollo local.
+## ⚠️ Limitaciones
+
+- Requiere conexión a internet para APIs
+- No puede guardar archivos localmente
+- Funciona solo con servidor HTTP local
+- No tiene acceso al sistema de archivos
+
+## 🆘 Si aún no funciona
+
+1. Verifica que Python esté instalado: `python --version`
+2. Verifica que el puerto 8000 no esté ocupado
+3. Intenta con otro navegador
+4. Revisa la consola del navegador (F12) para errores específicos
+
+¿Sigues teniendo problemas? Comparte el error específico de la consola del navegador.
+
+---
+
+**Nota**: Esta versión HTML incluye datos mock para desarrollo, por lo que funciona incluso sin conexión a internet o con problemas de CORS.
