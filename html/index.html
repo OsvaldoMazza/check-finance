@@ -1020,7 +1020,9 @@ function generateMockData(symbol, basePrice, days = 150, volatility = 0.02) {
     const close = price * (1 + change);
     const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5);
     const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5);
-    const volume = symbol.includes('AAPL') ? Math.floor(Math.random() * 100000000) + 20000000 : null;
+    const volume = symbol.includes('AAPL') || symbol.includes('MSFT') || symbol.includes('GOOGL') || symbol.includes('TSLA') || symbol.includes('AMZN') ||
+                   symbol.includes('NVDA') || symbol.includes('META') || symbol.includes('NFLX') || symbol.includes('ORCL') || symbol.includes('CRM')
+                   ? Math.floor(Math.random() * 100000000) + 20000000 : null;
 
     data.push({
       date: date.toISOString().slice(0, 10),
@@ -1044,11 +1046,21 @@ const MOCK_PRICE_DATA = {
   tether: generateMockData('USDT', 1.00, 150, 0.001),
   bnb: generateMockData('BNB', 300, 150, 0.05),
   solana: generateMockData('SOL', 120, 150, 0.08),
+  'cardano': generateMockData('ADA', 0.35, 150, 0.06),
+  'polkadot': generateMockData('DOT', 8.50, 150, 0.07),
+  'chainlink': generateMockData('LINK', 7.80, 150, 0.08),
+  'avalanche-2': generateMockData('AVAX', 16.50, 150, 0.09),
+  'polygon-pos': generateMockData('MATIC', 0.85, 150, 0.07),
   AAPL: generateMockData('AAPL', 180, 150, 0.02),
   MSFT: generateMockData('MSFT', 380, 150, 0.025),
   GOOGL: generateMockData('GOOGL', 140, 150, 0.03),
   TSLA: generateMockData('TSLA', 250, 150, 0.06),
-  AMZN: generateMockData('AMZN', 155, 150, 0.035)
+  AMZN: generateMockData('AMZN', 155, 150, 0.035),
+  NVDA: generateMockData('NVDA', 450, 150, 0.04),
+  META: generateMockData('META', 300, 150, 0.03),
+  NFLX: generateMockData('NFLX', 320, 150, 0.04),
+  ORCL: generateMockData('ORCL', 85, 150, 0.025),
+  CRM: generateMockData('CRM', 220, 150, 0.035)
 };
 
 // ========================================
@@ -1817,12 +1829,10 @@ async function loadAssetList(connector, { onStatus, setSearchPlaceholder, disabl
 
 async function loadTwelveDataStocks() {
   try {
-    const response = await fetch('./assets/twelvedata-stocks.json');
-    const assets   = await response.json();
-    console.log(`[OK] Cargados ${assets.length} activos desde JSON`);
-    return assets;
+    // Usar datos mock directamente (ya no necesitamos archivo externo)
+    return MOCK_STOCK_DATA;
   } catch (err) {
-    console.error('[ERROR] Error cargando lista de activos desde JSON:', err);
+    console.error('[ERROR] Error cargando datos mock de acciones:', err);
     return [];
   }
 }
