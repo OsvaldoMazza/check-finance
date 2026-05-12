@@ -1,0 +1,2769 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Check Finance App</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <style>
+/* styles.css - Estilos de la aplicación */
+
+:root {
+  --bg-primary: #080b10;
+  --bg-secondary: #0c111a;
+  --bg-tertiary: #181f2a;
+  --border: #1a2030;
+  --accent: #00d4ff;
+  --text-primary: #b8c8d8;
+  --text-muted: #3a4858;
+  --success: #00ff88;
+  --danger: #ff3c5a;
+  --warning: #ffcc00;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+}
+
+#dashboard {
+  max-width: 1000px;
+  margin: 40px auto;
+  padding: 32px;
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  box-shadow: 0 4px 32px rgba(0, 0, 0, 0.5);
+}
+
+h1 {
+  color: var(--accent);
+  letter-spacing: 2px;
+  margin: 0;
+  font-size: 32px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+button {
+  padding: 12px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 212, 255, 0.3);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+#btnCsv {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.crypto-dropdown {
+  position: relative;
+  min-width: 280px;
+}
+
+.crypto-search {
+  width: 100%;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: text;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.crypto-search:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.crypto-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+}
+
+.crypto-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 300px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.crypto-list.hidden {
+  display: none;
+}
+
+.crypto-item {
+  padding: 12px 18px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid rgba(26, 32, 48, 0.5);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.crypto-item:last-child {
+  border-bottom: none;
+}
+
+.crypto-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.crypto-item.selected {
+  background: rgba(0, 212, 255, 0.1);
+  border-left: 3px solid var(--accent);
+}
+
+.asset-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.crypto-item-name {
+  color: var(--text-primary);
+  font-weight: 500;
+  font-size: 14px;
+  flex: 1;
+}
+
+.crypto-item-symbol {
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-left: 8px;
+}
+
+.crypto-item-type {
+  color: var(--accent);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+  padding: 2px 8px;
+  background: rgba(0, 212, 255, 0.1);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+#btnApi {
+  background: var(--bg-tertiary);
+  color: var(--accent);
+  border: 2px solid var(--accent);
+}
+
+#btnApi.connected {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+}
+
+.sample-select {
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  min-width: 180px;
+  outline: none;
+}
+
+.sample-select:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.sample-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+}
+
+.sample-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px;
+}
+
+.connector-select {
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  min-width: 220px;
+  outline: none;
+}
+
+.connector-select:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.connector-select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+}
+
+.connector-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px;
+}
+
+.scan-btn {
+  background: linear-gradient(135deg, #b060ff 0%, #8040d0 100%);
+  color: white;
+  padding: 12px 24px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.scan-btn:hover {
+  box-shadow: 0 6px 16px rgba(176, 96, 255, 0.4);
+  transform: translateY(-2px);
+}
+
+.scan-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.scan-btn.scanning {
+  background: linear-gradient(135deg, #ffcc00 0%, #ff9900 100%);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.tradeon-select {
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.1), rgba(0, 212, 255, 0.1));
+  color: var(--success);
+  border: 2px solid var(--success);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  min-width: 200px;
+  outline: none;
+}
+
+.tradeon-select:hover {
+  border-color: var(--success);
+  box-shadow: 0 0 16px rgba(0, 255, 136, 0.3);
+}
+
+.tradeon-select:focus {
+  box-shadow: 0 0 20px rgba(0, 255, 136, 0.4);
+}
+
+.tradeon-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 8px;
+}
+
+.tradeon-select.hidden {
+  display: none;
+}
+
+#status {
+  min-height: 24px;
+  color: var(--warning);
+  font-size: 14px;
+  margin-bottom: 18px;
+}
+
+#chartArea {
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  padding: 24px;
+  min-height: 380px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.placeholder {
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.placeholder-title {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+
+.placeholder-text {
+  font-size: 14px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.signal-box {
+  grid-column: 1 / -1;
+  padding: 20px;
+  border-radius: 12px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 900;
+  font-size: 26px;
+  letter-spacing: 3px;
+  text-align: center;
+  text-transform: uppercase;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.signal-box.ON {
+  background: linear-gradient(135deg, rgba(0, 255, 136, 0.15), rgba(0, 212, 255, 0.1));
+  border: 2px solid var(--success);
+  color: var(--success);
+  box-shadow: 0 4px 16px rgba(0, 255, 136, 0.4), inset 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.signal-box.OFF {
+  background: linear-gradient(135deg, rgba(255, 60, 90, 0.12), rgba(26, 32, 48, 0.3));
+  border: 2px solid rgba(255, 60, 90, 0.5);
+  color: rgba(255, 60, 90, 0.85);
+  box-shadow: 0 4px 16px rgba(255, 60, 90, 0.2);
+}
+
+.metric-card {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  padding: 16px 18px;
+  border-radius: 8px;
+}
+
+.metric-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.metric-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.good { color: var(--success); }
+.bad { color: var(--danger); }
+.neutral { color: var(--warning); }
+.accent { color: var(--accent); }
+.purple { color: #b060ff; }
+
+.diagnostic-panel {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  padding: 20px 24px;
+  margin-top: 20px;
+  border-radius: 12px;
+}
+
+.panel-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 13px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin: 10px 0 4px;
+}
+
+.cond-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(26, 32, 48, 0.7);
+  font-size: 13px;
+}
+
+.cond-row:last-of-type {
+  border-bottom: none;
+}
+
+.cond-name {
+  color: var(--text-primary);
+}
+
+.cond-ok {
+  color: var(--success);
+  min-width: 72px;
+  text-align: right;
+}
+
+.cond-fail {
+  color: var(--danger);
+  min-width: 72px;
+  text-align: right;
+}
+
+.cond-bonus-ok {
+  color: #b060ff;
+  min-width: 72px;
+  text-align: right;
+}
+
+.cond-bonus-fail {
+  color: var(--text-muted);
+  min-width: 72px;
+  text-align: right;
+}
+
+.cond-nodata {
+  color: var(--text-muted);
+  min-width: 72px;
+  text-align: right;
+  font-style: italic;
+}
+
+.score-section {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.score-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.score-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 110px;
+}
+
+.score-track {
+  flex: 1;
+  height: 5px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.score-fill {
+  height: 100%;
+  transition: width 0.4s, background 0.4s;
+}
+
+.score-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  min-width: 70px;
+  text-align: right;
+}
+
+.fix-note {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  margin-top: 6px;
+}
+
+.chart-wrap {
+  margin-bottom: 20px;
+  padding: 18px 22px;
+  background: rgba(12, 17, 26, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.chart-wrap canvas {
+  width: 100% !important;
+}
+
+.abs-panel {
+  grid-column: 1 / -1;
+  background: linear-gradient(135deg, rgba(0, 212, 255, 0.04), rgba(24, 31, 42, 0.6));
+  border: 1px solid rgba(0, 212, 255, 0.14);
+  border-radius: 10px;
+  padding: 12px 16px;
+}
+
+.abs-panel .metric-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 2.5px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(0, 212, 255, 0.08);
+}
+
+.abs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0 16px;
+  font-family: 'Consolas', 'Share Tech Mono', monospace;
+}
+
+.abs-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.abs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  padding: 3px 5px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.abs-row:hover {
+  background: rgba(0, 212, 255, 0.07);
+}
+
+.abs-key {
+  color: var(--text-muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+
+.abs-val {
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.settings-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settings-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-content {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-header h2 {
+  color: var(--accent);
+  font-size: 22px;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 24px;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: var(--danger);
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.setting-group {
+  margin-bottom: 24px;
+}
+
+.setting-group:last-child {
+  margin-bottom: 0;
+}
+
+.setting-group label {
+  display: block;
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.setting-group input[type="number"] {
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.setting-group input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.3);
+}
+
+.setting-hint {
+  display: block;
+  color: var(--text-muted);
+  font-size: 12px;
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.selected-assets-info {
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+#selectedAssetsCount {
+  display: block;
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.assets-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.action-btn:hover {
+  border-color: var(--accent);
+  background: var(--bg-tertiary);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.2);
+}
+
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.save-btn,
+.cancel-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  font-family: inherit;
+}
+
+.save-btn {
+  background: linear-gradient(135deg, var(--success) 0%, #00cc70 100%);
+  color: #000;
+}
+
+.save-btn:hover {
+  box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
+  transform: translateY(-2px);
+}
+
+.cancel-btn {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.cancel-btn:hover {
+  border-color: var(--text-muted);
+  background: var(--bg-primary);
+}
+  </style>
+</head>
+<body>
+  <div id="dashboard">
+    <div class="header">
+      <h1>Check Finance</h1>
+      <button id="btnSettings" class="settings-btn" title="Configuración">⚙️</button>
+    </div>
+
+    <div class="controls">
+      <button id="btnCsv">📊 Subir CSV</button>
+      <input type="file" id="csvFile" accept=".csv" style="display:none">
+      <select id="apiConnector" class="connector-select">
+        <option value="coingecko" selected>API: CoinGecko (Criptos)</option>
+        <option value="twelvedata">API: TwelveData (Acciones/Bonos)</option>
+      </select>
+      <div class="crypto-dropdown">
+        <input type="text" id="cryptoSearch" class="crypto-search" placeholder="🔍 Buscar activo..." autocomplete="off">
+        <div id="cryptoList" class="crypto-list hidden"></div>
+        <input type="hidden" id="selectedCrypto" value="bitcoin">
+      </div>
+      <button id="btnApi">🔌 Conectar a API</button>
+      <button id="btnScanTradeOn" class="scan-btn">🔍 Scan trade ON</button>
+      <select id="tradeOnResults" class="tradeon-select hidden">
+        <option value="">Resultados TRADE ON</option>
+      </select>
+      <select id="samplePeriod" class="sample-select">
+        <option value="all" selected>Muestras: Todos los datos</option>
+        <option value="1">Muestras: 1 día</option>
+        <option value="3">Muestras: 3 días</option>
+        <option value="7">Muestras: 7 días</option>
+        <option value="15">Muestras: 15 días</option>
+        <option value="30">Muestras: 30 días</option>
+        <option value="60">Muestras: 60 días</option>
+        <option value="90">Muestras: 90 días</option>
+      </select>
+    </div>
+
+    <div id="status"></div>
+
+    <div id="metricsGrid" class="metrics-grid"></div>
+
+    <div id="chartArea">
+      <div class="placeholder">
+        <p class="placeholder-title">📈 Gráfica del Activo</p>
+        <p class="placeholder-text">Selecciona una fuente de datos para comenzar</p>
+      </div>
+    </div>
+
+    <div id="chartEquityArea" class="chart-wrap hidden">
+      <div class="panel-title">Equity Curve (R acumulado) — solo trades ejecutados</div>
+      <canvas id="chartEquity" height="150"></canvas>
+    </div>
+
+    <div id="chartVolumeArea" class="chart-wrap hidden">
+      <div class="panel-title">Volumen — normalizado K/M/B, MA20</div>
+      <canvas id="chartVolume" height="130"></canvas>
+    </div>
+
+    <div id="diagnosticPanel" class="diagnostic-panel"></div>
+
+    <!-- Modal de Configuración -->
+    <div id="settingsModal" class="modal hidden">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>⚙️ Configuración</h2>
+          <button id="closeSettings" class="close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="setting-group">
+            <label for="scanDelay">Delay entre requests (ms):</label>
+            <input type="number" id="scanDelay" min="1000" max="30000" step="1000" value="8000">
+            <span class="setting-hint">Tiempo de espera entre cada petición al escanear (8000ms = 8 segundos)</span>
+          </div>
+          <div class="setting-group">
+            <label for="scanLimit">Límite de activos a escanear:</label>
+            <input type="number" id="scanLimit" min="5" max="100" step="5" value="30">
+            <span class="setting-hint">Cantidad máxima de activos que el scanner analizará (solo si no hay selección manual)</span>
+          </div>
+          <div class="setting-group">
+            <label>Activos seleccionados para scan:</label>
+            <div class="selected-assets-info">
+              <span id="selectedAssetsCount">0 activos seleccionados</span>
+              <div class="assets-actions">
+                <button id="selectAllAssets" class="action-btn">Seleccionar todos</button>
+                <button id="clearAllAssets" class="action-btn">Limpiar selección</button>
+              </div>
+            </div>
+            <span class="setting-hint">Marca activos en el dropdown para escanear solo esos. Si no hay marcados, se usan los primeros N de la lista.</span>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="saveSettings" class="save-btn">💾 Guardar</button>
+          <button id="cancelSettings" class="cancel-btn">Cancelar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+// ========================================
+// CONFIGURACIÓN DE APIs
+// ========================================
+
+const API_CONFIG = {
+  scanner: {
+    delayBetweenRequests: 8000,
+    maxAssetsToScan: 30
+  },
+  coingecko: {
+    baseUrl: 'https://api.coingecko.com/api/v3',
+    apiKey: 'CG-vSJmiAGseBKkoHeHkgUMMotQ',
+    endpoints: {
+      coinsList: '/coins/markets',
+      ohlc: '/coins/{id}/ohlc'
+    }
+  },
+  twelvedata: {
+    baseUrl: 'https://api.twelvedata.com',
+    apiKey: 'a781689d1b1a44dfb31a0c11daecd71b',
+    endpoints: {
+      timeSeries: '/time_series'
+    },
+    defaults: {
+      interval: '1day',
+      outputsize: 1000,
+      format: 'JSON'
+    }
+  }
+};
+
+// ========================================
+// FUNCIONES DE CÁLCULO (PUERTO DE /calculate)
+// ========================================
+
+// Ichimoku
+class MonotonicQueue {
+  constructor(comparator) {
+    this.queue = [];
+    this.comparator = comparator;
+  }
+  push(idx, getValue) {
+    const val = getValue(idx);
+    while (this.queue.length && this.comparator(val, getValue(this.queue[this.queue.length - 1]))) {
+      this.queue.pop();
+    }
+    this.queue.push(idx);
+  }
+  pop(idx) {
+    if (this.queue.length && this.queue[0] === idx) this.queue.shift();
+  }
+  max(getValue) {
+    if (!this.queue.length) return null;
+    return getValue(this.queue[0]);
+  }
+}
+
+function rollingMaxMin(high, low, period) {
+  const n = high.length;
+  const maxQueue = new MonotonicQueue((a, b) => a >= b);
+  const minQueue = new MonotonicQueue((a, b) => a <= b);
+  const resultHigh = new Array(n).fill(null);
+  const resultLow = new Array(n).fill(null);
+
+  for (let i = 0; i < n; i++) {
+    maxQueue.push(i, idx => high[idx]);
+    minQueue.push(i, idx => low[idx]);
+
+    if (i >= period) {
+      maxQueue.pop(i - period);
+      minQueue.pop(i - period);
+    }
+
+    if (i >= period - 1) {
+      resultHigh[i] = maxQueue.max(idx => high[idx]);
+      resultLow[i] = minQueue.max(idx => low[idx]);
+    }
+  }
+
+  return { maxHigh: resultHigh, minLow: resultLow };
+}
+
+function ichimokuOptimized(data, tenkanPer, kijunPer, senkouPer) {
+  const N = data.length;
+  const highs = data.map(x => x.high);
+  const lows = data.map(x => x.low);
+  const tenkanHL = rollingMaxMin(highs, lows, tenkanPer);
+  const kijunHL = rollingMaxMin(highs, lows, kijunPer);
+  const senkouHL = rollingMaxMin(highs, lows, senkouPer);
+  const disp = kijunPer;
+  for (let i = 0; i < N; i++) {
+    if (i >= tenkanPer-1) {
+      data[i].tenkan = (tenkanHL.maxHigh[i] + tenkanHL.minLow[i]) / 2;
+    }
+    if (i >= kijunPer-1) {
+      data[i].kijun = (kijunHL.maxHigh[i] + kijunHL.minLow[i]) / 2;
+    }
+    if (i >= senkouPer-1 && i + disp < N) {
+      data[i+disp].senkouB = (senkouHL.maxHigh[i] + senkouHL.minLow[i]) / 2;
+    }
+    if (data[i].tenkan !== undefined && data[i].kijun !== undefined && i+disp < N) {
+      data[i+disp].senkouA = (data[i].tenkan + data[i].kijun) / 2;
+    }
+  }
+  return data;
+}
+
+// ATR
+function calcATR(data, period) {
+  const N = data.length;
+  const atr = new Array(N).fill(null);
+  let sum = 0;
+  for (let i = 1; i < N; i++) {
+    const tr = Math.max(
+      data[i].high - data[i].low,
+      Math.abs(data[i].high - data[i-1].close),
+      Math.abs(data[i].low  - data[i-1].close)
+    );
+    if (i <= period) {
+      sum += tr;
+      if (i === period) atr[i] = sum / period;
+    } else {
+      atr[i] = (atr[i-1] * (period-1) + tr) / period;
+    }
+  }
+  return atr;
+}
+
+// Señales
+function chikouClear(data, i, disp) {
+  const close = data[i]?.close;
+  if (!close) return false;
+  const refIdx = i - disp;
+  if (refIdx < 0) return false;
+  const ref = data[refIdx];
+  if (!ref) return false;
+  return close > ref.high;
+}
+
+function pullbackType(f, atrVal) {
+  if (!f || !f.kijun) return 'NO_PULLBACK';
+  if (f.low > f.kijun) return 'NO_PULLBACK';
+  const depthPrice = f.kijun - f.low;
+  if (atrVal && atrVal > 0) {
+    if (depthPrice < 0.5 * atrVal) return 'SUPERFICIAL';
+    if (depthPrice < 1.5 * atrVal) return 'NORMAL';
+    return 'PROFUNDO';
+  } else {
+    const depthPct = depthPrice / f.kijun;
+    if (depthPct < 0.01) return 'SUPERFICIAL';
+    if (depthPct < 0.03) return 'NORMAL';
+    return 'PROFUNDO';
+  }
+}
+
+// Régimen de mercado
+function detectRegime(data, i, atrArr, calib) {
+  const c = data[i], prev = data[i - 1];
+  if (!c || !prev || !c.kijun || !prev.kijun) return 'RANGE';
+
+  const atrNorm = (atrArr && atrArr[i] && c.close > 0)
+                  ? atrArr[i] / c.close
+                  : (calib?.atrNormMedian ?? 0.01);
+
+  const slope = c.kijun > prev.kijun;
+  const distance = Math.abs((c.close - c.kijun) / c.close);
+
+  return (slope && distance > 0.5 * atrNorm) ? 'TREND' : 'RANGE';
+}
+
+// Reversión
+function detectReversal(data, i, lb = 0) {
+  const barIdx = i - lb;
+  const c = data[barIdx], prev = data[barIdx - 1];
+  if (!c || !prev) return { pattern: 'NINGUNO', ok: false };
+
+  const range = c.high - c.low;
+  if (range < 1e-8) return { pattern: 'NINGUNO', ok: false };
+
+  const hasOpen = c.open !== undefined && !isNaN(c.open);
+  const prevHasOpen = prev.open !== undefined && !isNaN(prev.open);
+  if (!hasOpen) return { pattern: 'NINGUNO', ok: false };
+
+  const bodyBottom = Math.min(c.close, c.open);
+  const bodyTop = Math.max(c.close, c.open);
+  const body = bodyTop - bodyBottom;
+  const lowerWick = bodyBottom - c.low;
+  const upperWick = c.high - bodyTop;
+
+  // Patrón Engulfing
+  if (hasOpen && prevHasOpen) {
+    const prevBearish = prev.close < prev.open;
+    if (prevBearish && c.close > prev.open && c.open < prev.close) {
+      return { pattern: 'ENGULFING', ok: true };
+    }
+  }
+
+  // Patrón Hammer/Pin
+  const minBody = Math.max(body, range * 0.04);
+  if (lowerWick >= 2 * minBody && upperWick <= minBody && c.close >= c.low + range * 0.5) {
+    return { pattern: 'HAMMER/PIN', ok: true };
+  }
+
+  return { pattern: 'NINGUNO', ok: false };
+}
+
+// Volumen
+function volumeConfirm(data, i, lookback = 20, pbWindow = 5) {
+  const bar = data[i];
+  if (!bar || bar.volume === undefined || isNaN(bar.volume)) return null;
+
+  // Ventana de referencia: [i-lookback-pbWindow+1, i-pbWindow] (lookback barras)
+  let sumAvg = 0, countAvg = 0;
+  const avgStart = Math.max(0, i - lookback - pbWindow + 1);
+  const avgEnd = Math.max(0, i - pbWindow);
+
+  for (let j = avgStart; j <= avgEnd; j++) {
+    if (!isNaN(data[j]?.volume)) {
+      sumAvg += data[j].volume;
+      countAvg++;
+    }
+  }
+
+  if (countAvg === 0) return null;
+  const avgVol = sumAvg / countAvg;
+
+  // Ventana de pullback: [i-pbWindow+1, i]
+  let sumPb = 0, countPb = 0;
+  const pbStart = Math.max(0, i - pbWindow + 1);
+  for (let j = pbStart; j <= i; j++) {
+    if (!isNaN(data[j]?.volume)) {
+      sumPb += data[j].volume;
+      countPb++;
+    }
+  }
+
+  if (countPb === 0) return null;
+  const pbVol = sumPb / countPb;
+
+  return pbVol < avgVol * 0.8;
+}
+
+// Calibración
+function calibrateParams(slow, atrArr, N) {
+  const thicknesses = [];
+  const atrNorms = [];
+  const tkSpreads = [];
+
+  for (let i = 60; i < N; i++) {
+    const s = slow[i];
+    if (!s || !s.senkouA || !s.senkouB || !s.close || s.close <= 0) continue;
+
+    // Espesor de la nube normalizado
+    thicknesses.push(Math.abs(s.senkouA - s.senkouB) / s.close);
+
+    // ATR normalizado
+    if (atrArr[i]) atrNorms.push(atrArr[i] / s.close);
+
+    // Spread Tenkan-Kijun normalizado
+    if (s.tenkan !== undefined && s.kijun) tkSpreads.push(Math.abs(s.tenkan - s.kijun) / s.close);
+  }
+
+  // Función de percentil (ordena y extrae)
+  const pct = (arr, p) => {
+    if (arr.length < 20) return null;          // insuficiente → fallback
+    const sorted = [...arr].sort((a, b) => a - b);
+    const idx = Math.floor((sorted.length - 1) * p);
+    return sorted[Math.max(0, Math.min(idx, sorted.length - 1))];
+  };
+
+  return {
+    cloudThicknessMin: pct(thicknesses, 0.20) ?? 0.003,
+    atrNormMedian: pct(atrNorms, 0.50) ?? 0.01,
+    tkSpreadMin: pct(tkSpreads, 0.25) ?? 0.003,
+    _thicknesses: thicknesses,
+    _atrNorms: atrNorms,
+    _tkSpreads: tkSpreads
+  };
+}
+
+// Score y señal
+function calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin) {
+  let coreScore = 0;
+  const coreDetail = [];
+
+  const minPct = cloudThicknessMin != null ? (cloudThicknessMin * 100).toFixed(2) : '0.30';
+
+  // Tendencia: 25 si strong, 20 si valida pero debil
+  const trendPts = cond.trend ? (cond.trendStrong ? 25 : 20) : 0;
+  coreScore += trendPts;
+  coreDetail.push({
+    name: cond.trend
+      ? (cond.trendStrong
+          ? 'Tendencia — fuerte (Tenkan/Kijun bien separados)'
+          : 'Tendencia — valida pero debil (spread TK bajo)')
+      : 'Tendencia — Tenkan > Kijun & precio > Kijun',
+    ok: cond.trend,
+    pts: trendPts,
+    max: 25
+  });
+
+  // Nube (25 pts) - con detalle de espesor
+  coreScore += cond.cloud ? 25 : 0;
+  const cloudPct = cloudThickness != null ? (cloudThickness * 100).toFixed(2) + '%' : '—';
+  const cloudName = cond.cloud
+    ? `Nube — bullish, expansión, espesor ${cloudPct} (mín ${minPct}%)`
+    : cloudThickness != null && cloudThickness <= (cloudThicknessMin ?? 0.005)
+      ? `Nube — delgada (${cloudPct} < ${minPct}%) — soporte débil`
+      : `Nube — precio bajo o sin expansión (espesor ${cloudPct})`;
+  coreDetail.push({
+    name: cloudName,
+    ok: cond.cloud,
+    pts: cond.cloud ? 25 : 0,
+    max: 25
+  });
+
+  // Pullback ATR (20 pts)
+  let pbPts = 0;
+  if (pbType === 'SUPERFICIAL') pbPts = 20;
+  else if (pbType === 'NORMAL') pbPts = 10;
+  coreScore += pbPts;
+  coreDetail.push({
+    name: `Pullback ATR (${pbType})`,
+    ok: pbPts > 0,
+    pts: pbPts,
+    max: 20
+  });
+
+  // Rebote (15 pts)
+  coreScore += cond.bounce ? 15 : 0;
+  coreDetail.push({
+    name: 'Rebote — close > Kijun fast TF',
+    ok: cond.bounce,
+    pts: cond.bounce ? 15 : 0,
+    max: 15
+  });
+
+  // Chikou (15 pts)
+  coreScore += cond.chikou ? 15 : 0;
+  coreDetail.push({
+    name: 'Chikou — close actual sobre máximos previos',
+    ok: cond.chikou,
+    pts: cond.chikou ? 15 : 0,
+    max: 15
+  });
+
+  // Bonus
+  let bonusScore = 0;
+  const bonusDetail = [];
+
+  // Reversal (+10 pts)
+  const revOk = reversal.ok;
+  bonusScore += revOk ? 10 : 0;
+  bonusDetail.push({
+    name: `Patrón reversal (${reversal.pattern})`,
+    pattern: reversal.pattern,
+    ok: revOk,
+    pts: revOk ? 10 : 0,
+    max: 10,
+    nodata: false,
+    bonus: true
+  });
+
+  // Volumen (+10 / 0 / 0): warning visual si es alto, sin penalizacion.
+  if (volCheck === null) {
+    bonusDetail.push({
+      name: 'Volumen pullback (sin datos en CSV)',
+      ok: null,
+      pts: 0,
+      max: 10,
+      nodata: true,
+      bonus: true
+    });
+  } else if (volCheck === true) {
+    bonusScore += 10;
+    bonusDetail.push({
+      name: 'Volumen pullback < 80% media (saludable)',
+      ok: true,
+      pts: 10,
+      max: 10,
+      nodata: false,
+      bonus: true
+    });
+  } else {
+    bonusDetail.push({
+      name: 'Volumen alto en pullback — revisar manualmente',
+      ok: false,
+      pts: 0,
+      max: 10,
+      nodata: false,
+      bonus: true,
+      warn: true
+    });
+  }
+
+  return {
+    coreScore,
+    bonusScore,
+    totalScore: coreScore + bonusScore,
+    coreDetail,
+    bonusDetail
+  };
+}
+
+function buildSignal(dSlow, dFast, i, kijunSlow, atrArr, scoreConfig, rawDataForVol, calib) {
+  const s = dSlow[i], prev = dSlow[i - 1], f = dFast[i];
+  if (!s || !f || !s.kijun || !f.kijun || !s.senkouA || !s.senkouB) return null;
+
+  const regime = detectRegime(dSlow, i, atrArr, calib);
+  const cloudTop = Math.max(s.senkouA, s.senkouB);
+  const atrVal = atrArr ? atrArr[i] : null;
+
+  // Pullback lookback (ultimas 3 barras del fast TF)
+  let pbType = 'NO_PULLBACK';
+  let pbLb = 0;
+  const LOOKBACK = 3;
+  for (let lb = 0; lb < LOOKBACK; lb++) {
+    const lbIdx = i - lb;
+    if (lbIdx < 0) break;
+    const fBar = dFast[lbIdx];
+    const atrLb = atrArr ? atrArr[lbIdx] : null;
+    const pt = pullbackType(fBar, atrLb);
+    if (pt === 'SUPERFICIAL' || pt === 'NORMAL') {
+      pbType = pt;
+      pbLb = lb;
+      break;
+    }
+    if (pt === 'PROFUNDO' && pbType === 'NO_PULLBACK') {
+      pbType = 'PROFUNDO';
+      pbLb = lb;
+    }
+  }
+
+  const cloudThickness = Math.abs(s.senkouA - s.senkouB) / s.close;
+
+  const cloudThicknessMin = calib?.cloudThicknessMin ?? 0.003;
+
+  const trendStrength = (s.tenkan !== undefined && s.kijun && s.close > 0)
+    ? Math.abs(s.tenkan - s.kijun) / s.close
+    : 0;
+  const tkSpreadMin = calib?.tkSpreadMin ?? 0.003;
+
+  const cond = {
+    trend: s.tenkan !== undefined && s.tenkan > s.kijun && s.close > s.kijun,
+    trendStrong: trendStrength > tkSpreadMin,
+    cloud: s.close > cloudTop &&
+          s.senkouA > s.senkouB &&
+          prev && s.senkouA > (prev.senkouA || 0) &&
+          cloudThickness > cloudThicknessMin,
+    bounce: f.close > f.kijun,
+    chikou: chikouClear(dSlow, i, kijunSlow)
+  };
+
+  const reversal = detectReversal(dFast, i, pbLb);
+  const volCheck = volumeConfirm(rawDataForVol, i - pbLb);
+  const { coreScore, bonusScore, totalScore, coreDetail, bonusDetail } =
+    calculateScore(cond, pbType, reversal, volCheck, cloudThickness, cloudThicknessMin);
+  const { coreMin, totalMin } = scoreConfig;
+  const tradablePullback = pbType === 'SUPERFICIAL' || pbType === 'NORMAL';
+  const valid = regime === 'TREND' && tradablePullback && coreScore >= coreMin && totalScore >= totalMin;
+
+  return {
+    valid,
+    coreScore,
+    bonusScore,
+    totalScore,
+    coreDetail,
+    bonusDetail,
+    regime,
+    pbType,
+    atrVal,
+    cloudThickness,
+    cloudThicknessMin,
+    trendStrength,
+    tkSpreadMin
+  };
+}
+
+// Backtest
+function runBacktest(dFast, prices, sigIndices, rawData) {
+  let wins = 0, losses = 0, cumR = 0, maxCumR = 0, maxDD = 0;
+  const equity = [0];
+
+  for (const idx of sigIndices) {
+    // MEJORA 1: saltar si no hay barra siguiente
+    if (idx + 1 >= prices.length) continue;
+
+    // CHANGE 2 — entrada al open del día siguiente (gap filter)
+    const nextBar = rawData && rawData[idx + 1];
+    const entry   = (nextBar && !isNaN(nextBar.open)) ? nextBar.open : prices[idx + 1];
+
+    // Stop inicial = Kijun del fast TF en la barra de señal
+    const initialStop = dFast[idx]?.kijun;
+    if (!initialStop || initialStop >= entry) continue;
+
+    const risk      = entry - initialStop;
+    let   trailStop = initialStop;
+    let   outcomeR  = null;
+    let   exitPrice = null;
+
+    // CHANGE 3 — trailing stop con BUG 1 FIX: check ANTES de update
+    for (let j = idx + 1; j < Math.min(idx + 61, prices.length); j++) {
+      const bar = dFast[j];
+      if (!bar) break;
+
+      // 1° VERIFICAR si el low toca el stop VIGENTE (del período anterior)
+      if (bar.low !== undefined && bar.low <= trailStop) {
+        exitPrice = trailStop;
+        outcomeR  = (exitPrice - entry) / risk;
+        break;
+      }
+
+      // 2° Solo si no fue tocado: actualizar el trailing stop para la próxima barra
+      if (bar.kijun && bar.kijun > trailStop) trailStop = bar.kijun;
+    }
+
+    // Timeout: salida al close de la barra 60
+    if (outcomeR === null) {
+      const exitIdx = Math.min(idx + 61, prices.length - 1);
+      exitPrice = prices[exitIdx];
+      outcomeR  = (exitPrice - entry) / risk;
+    }
+
+    if (outcomeR > 0) wins++; else losses++;
+    cumR += outcomeR;
+    equity.push(parseFloat(cumR.toFixed(2)));
+    maxCumR = Math.max(maxCumR, cumR);
+    maxDD   = Math.max(maxDD, maxCumR - cumR);
+  }
+
+  const total = wins + losses;
+  return {
+    wins, losses, total,
+    winRate:    total > 0 ? (wins / total * 100).toFixed(1) : '—',
+    expectancy: total > 0 ? (cumR / total).toFixed(2)       : '—',
+    totalR:     cumR.toFixed(2),
+    maxDD:      maxDD.toFixed(2),
+    equity
+  };
+}
+
+// Input adapter
+function pick(row, keys) {
+  for (const k of keys) {
+    if (row && row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
+  }
+  return undefined;
+}
+
+function toNum(v) {
+  if (v === undefined || v === null || v === '') return NaN;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+  const s = String(v).trim();
+  if (!s) return NaN;
+
+  // Soporta "1.234,56" y "1,234.56".
+  if (s.includes(',') && s.includes('.')) {
+    const lastComma = s.lastIndexOf(',');
+    const lastDot = s.lastIndexOf('.');
+    if (lastComma > lastDot) return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+    return parseFloat(s.replace(/,/g, ''));
+  }
+
+  if (s.includes(',')) return parseFloat(s.replace(',', '.'));
+  return parseFloat(s);
+}
+
+function parseDateComparable(dateLike) {
+  if (!dateLike) return '';
+  const d = String(dateLike).trim();
+  if (!d) return '';
+
+  // YYYY-MM-DD / YYYY/MM/DD
+  if (/^\d{4}[-/]\d{2}[-/]\d{2}/.test(d)) return d.replace(/\//g, '-').slice(0, 10);
+
+  // DD/MM/YYYY o DD.MM.YYYY
+  const m = d.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})/);
+  if (m) {
+    const dd = m[1].padStart(2, '0');
+    const mm = m[2].padStart(2, '0');
+    return `${m[3]}-${mm}-${dd}`;
+  }
+
+  const dt = new Date(d);
+  if (!Number.isNaN(dt.getTime())) return dt.toISOString().slice(0, 10);
+  return d;
+}
+
+function maybeReverseChronological(data) {
+  if (!Array.isArray(data) || data.length < 2) return data;
+  const first = parseDateComparable(data[0].date);
+  const last = parseDateComparable(data[data.length - 1].date);
+  if (first && last && first > last) data.reverse();
+  return data;
+}
+
+function normalizeObjectRow(row) {
+  return {
+    date: pick(row, ['date', 'Date', 'Fecha', 'datetime', 'Datetime', 'Time', 'timestamp']) ?? '',
+    open: toNum(pick(row, ['open', 'Open', 'Apertura', 'OPEN', 'o'])),
+    high: toNum(pick(row, ['high', 'High', 'MAX', 'Máximo', 'HIGH', 'h'])),
+    low: toNum(pick(row, ['low', 'Low', 'MIN', 'Mínimo', 'LOW', 'l'])),
+    close: toNum(pick(row, ['close', 'Close', 'Cierre', 'Último', 'PRICE', 'price', 'c'])),
+    volume: toNum(pick(row, ['volume', 'Volume', 'Volumen', 'Vol.', 'Vol', 'VOLUME', 'v']))
+  };
+}
+
+function normalizeArrayRow(row) {
+  // CoinGecko OHLC: [timestamp, open, high, low, close]
+  return {
+    date: row[0] != null ? new Date(Number(row[0])).toISOString().slice(0, 10) : '',
+    open: toNum(row[1]),
+    high: toNum(row[2]),
+    low: toNum(row[3]),
+    close: toNum(row[4]),
+    volume: toNum(row[5])
+  };
+}
+
+function normalizeMarketData(input) {
+  if (!input) return [];
+
+  let rows = [];
+  if (Array.isArray(input)) {
+    rows = input;
+  } else if (Array.isArray(input.values)) {
+    // TwelveData time series completo
+    rows = input.values;
+  } else {
+    return [];
+  }
+
+  const normalized = rows.map(row => (
+    Array.isArray(row) ? normalizeArrayRow(row) : normalizeObjectRow(row)
+  )).filter(r => !Number.isNaN(r.close) && !Number.isNaN(r.high) && !Number.isNaN(r.low));
+
+  return maybeReverseChronological(normalized);
+}
+
+// Data loader
+async function loadData(sourceConfig) {
+  if (sourceConfig.type === 'csv') {
+    return await loadCSV(sourceConfig.file);
+  } else if (sourceConfig.type === 'api') {
+    return await loadFromAPI(sourceConfig.apiConfig);
+  }
+  throw new Error('Fuente de datos no soportada');
+}
+
+async function loadCSV(file) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject('No se proporcionó archivo CSV');
+    const reader = new FileReader();
+    reader.onload = e => {
+      // PapaParse debe estar disponible globalmente
+      const parsed = window.Papa.parse(e.target.result, { header: true, skipEmptyLines: true });
+      resolve(parsed.data);
+    };
+    reader.onerror = () => reject('Error leyendo archivo CSV');
+    reader.readAsText(file);
+  });
+}
+
+async function loadFromAPI(apiConfig) {
+  // apiConfig: { endpoint, params, apiKey }
+  const { endpoint, params, apiKey } = apiConfig;
+  let url = `${API_CONFIG.coingecko.baseUrl}${endpoint}`;
+  if (params) {
+    const query = new URLSearchParams(params).toString();
+    url += `?${query}`;
+  }
+  const headers = {};
+  if (apiKey) headers['x-cg-pro-api-key'] = apiKey;
+  const res = await fetch(url, { headers });
+  if (!res.ok) throw new Error('Error al obtener datos de la API');
+  return await res.json();
+}
+
+// ========================================
+// FUNCIONES DE UI Y LOGICA PRINCIPAL
+// ========================================
+
+// Data utils
+function filterDataByPeriod(data, period) {
+  if (!data || data.length === 0) return data;
+
+  if (period === 'all') return data;
+
+  const days = parseInt(period);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const limitDate = new Date(today);
+  limitDate.setDate(limitDate.getDate() - days);
+
+  const result = data.filter(item => {
+    if (!item.date) return true;
+    const itemDate = new Date(item.date);
+    return itemDate >= limitDate;
+  });
+
+  console.log(`📊 Filtrado por fecha: ${result.length} puntos de ${data.length} totales (últimos ${days} días desde ${limitDate.toISOString().slice(0,10)})`);
+  return result;
+}
+
+function normalizeData(raw) {
+  return raw.map(row => {
+    const parseNum = (val) => {
+      if (!val) return NaN;
+      const cleaned = String(val).replace(/\./g, '').replace(',', '.');
+      return parseFloat(cleaned);
+    };
+
+    const parseDate = (val) => {
+      if (!val) return '';
+      try {
+        const date = new Date(val);
+        if (isNaN(date.getTime())) return val;
+        return date.toISOString().slice(0, 10);
+      } catch {
+        return val;
+      }
+    };
+
+    return {
+      date: parseDate(row.Fecha || row.Date || row.date || ''),
+      open:   parseNum(row.Apertura   ?? row.open   ?? row.Open),
+      high:   parseNum(row['Máximo']  ?? row.high   ?? row.High),
+      low:    parseNum(row['Mínimo']  ?? row.low    ?? row.Low),
+      close:  parseNum(row['Último']  ?? row.close  ?? row.Close),
+      volume: parseNum(row['Vol.']    ?? row.volume ?? row.Volume)
+    };
+  }).filter(r => !isNaN(r.close) && !isNaN(r.high) && !isNaN(r.low));
+}
+
+// API connector functions
+async function loadAssetList(connector, { onStatus, setSearchPlaceholder, disableSearch } = {}) {
+  try {
+    onStatus?.('Cargando lista de activos...');
+    setSearchPlaceholder?.('⌛ Cargando activos...');
+
+    if (connector === 'coingecko') {
+      const apiConfig = {
+        endpoint: API_CONFIG.coingecko.endpoints.coinsList,
+        params: {
+          vs_currency: 'usd',
+          order: 'market_cap_desc',
+          per_page: 100,
+          page: 1,
+          sparkline: false
+        },
+        apiKey: API_CONFIG.coingecko.apiKey
+      };
+      const coins = await loadData({ type: 'api', apiConfig });
+      coins.forEach(c => c.type = 'crypto');
+      setSearchPlaceholder?.('🔍 Buscar criptomoneda...');
+      onStatus?.(`${coins.length} criptomonedas disponibles. Listo para conectar.`);
+      console.log(`[OK] Cargadas ${coins.length} criptomonedas desde CoinGecko`);
+      return coins;
+
+    } else if (connector === 'twelvedata') {
+      const stocks = await loadTwelveDataStocks();
+      stocks.forEach(c => c.type = 'acciones');
+      setSearchPlaceholder?.('🔍 Buscar acción/bono...');
+      onStatus?.(`${stocks.length} activos disponibles. Listo para conectar.`);
+      console.log(`[OK] Cargados ${stocks.length} activos desde TwelveData`);
+      return stocks;
+    }
+
+    return [];
+
+  } catch (err) {
+    console.error('Error cargando lista de activos:', err);
+    setSearchPlaceholder?.('❌ Error al cargar activos');
+    disableSearch?.();
+    onStatus?.('Error al cargar lista de activos. Intenta recargar la página.');
+    return [];
+  }
+}
+
+async function loadTwelveDataStocks() {
+  try {
+    const response = await fetch('./assets/twelvedata-stocks.json');
+    const assets   = await response.json();
+    console.log(`[OK] Cargados ${assets.length} activos desde JSON`);
+    return assets;
+  } catch (err) {
+    console.error('[ERROR] Error cargando lista de activos desde JSON:', err);
+    return [];
+  }
+}
+
+async function fetchAssetData(assetId, currentConnector) {
+  try {
+    console.log(`🔍 Fetching data for ${assetId} using ${currentConnector}...`);
+
+    if (currentConnector === 'coingecko') {
+      const apiConfig = {
+        endpoint: `/coins/${assetId}/ohlc`,
+        params: { vs_currency: 'usd', days: '365' },
+        apiKey: API_CONFIG.coingecko.apiKey
+      };
+      const raw = await loadData({ type: 'api', apiConfig });
+      if (!raw || !Array.isArray(raw)) {
+        console.error(`Invalid data format for ${assetId}:`, raw);
+        return null;
+      }
+      const data = raw.map(candle => ({
+        date:   new Date(candle[0]).toISOString().slice(0, 10),
+        open:   candle[1],
+        high:   candle[2],
+        low:    candle[3],
+        close:  candle[4],
+        volume: null
+      }));
+      console.log(`✅ Processed ${data.length} bars for ${assetId}`);
+      return data;
+
+    } else if (currentConnector === 'twelvedata') {
+      const { apiKey, baseUrl, endpoints: { timeSeries: endpoint }, defaults } = API_CONFIG.twelvedata;
+      const url = `${baseUrl}${endpoint}?apikey=${apiKey}&symbol=${assetId}&interval=${defaults.interval}&outputsize=${defaults.outputsize}&format=${defaults.format}`;
+      const response = await fetch(url);
+      const raw      = await response.json();
+
+      if (raw.status === 'error') throw new Error(raw.message || 'Error en TwelveData API');
+      if (!raw.values || !Array.isArray(raw.values)) {
+        console.error(`Invalid TwelveData format for ${assetId}:`, raw);
+        return null;
+      }
+
+      const data = raw.values.map(item => ({
+        date:   item.datetime,
+        open:   parseFloat(item.open),
+        high:   parseFloat(item.high),
+        low:    parseFloat(item.low),
+        close:  parseFloat(item.close),
+        volume: parseFloat(item.volume)
+      })).reverse();
+
+      console.log(`✅ Processed ${data.length} bars for ${assetId}`);
+      return data;
+    }
+
+    return null;
+  } catch (err) {
+    console.error(`❌ Error fetching ${assetId}:`, err);
+    return null;
+  }
+}
+
+// Render functions
+function renderCryptoList(cryptoList, assets, selectedAssetId, selectedAssetsForScan, callbacks) {
+  if (!assets || assets.length === 0) {
+    cryptoList.innerHTML = '<div class="crypto-item" style="color:var(--text-muted);cursor:default;">No se encontraron resultados</div>';
+    return;
+  }
+
+  cryptoList.innerHTML = assets.map(asset => {
+    const isChecked      = selectedAssetsForScan.includes(asset.id);
+    const secondaryInfo  = asset.type
+      ? `<span class="crypto-item-type">${asset.type}</span>`
+      : `<span class="crypto-item-symbol">${asset.symbol.toUpperCase()}</span>`;
+
+    return `
+      <div class="crypto-item ${asset.id === selectedAssetId ? 'selected' : ''}" data-id="${asset.id}" data-name="${asset.name}">
+        <input type="checkbox" class="asset-checkbox" data-asset-id="${asset.id}" ${isChecked ? 'checked' : ''} />
+        <span class="crypto-item-name">${asset.name}</span>
+        ${secondaryInfo}
+      </div>
+    `;
+  }).join('');
+
+  cryptoList.querySelectorAll('.asset-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const assetId = checkbox.getAttribute('data-asset-id');
+      callbacks.onCheckboxToggle(assetId, checkbox.checked);
+    });
+  });
+
+  cryptoList.querySelectorAll('.crypto-item').forEach(item => {
+    const itemId = item.getAttribute('data-id');
+    if (!itemId) return;
+    item.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('asset-checkbox')) return;
+      callbacks.onAssetClick(itemId, item.getAttribute('data-name'));
+    });
+  });
+}
+
+function renderTradeOnResults(tradeOnResults, tradeOnAssets) {
+  tradeOnResults.innerHTML = `<option value="">📊 Resultados TRADE ON (${tradeOnAssets.length})</option>`;
+  tradeOnAssets.forEach(asset => {
+    const option = document.createElement('option');
+    option.value       = asset.id;
+    option.textContent = `🟢 ${asset.name}`;
+    tradeOnResults.appendChild(option);
+  });
+}
+
+// Charts
+let _equityChart = null;
+let _volumeChart = null;
+
+function renderPriceChart(canvas, data, slow, fast, trades = []) {
+  const n = data.length;
+  const labels   = data.map(d => d.date || '');
+  const prices   = data.map(d => d.close);
+  const tenkan   = slow.map(d => d.tenkan   ?? null);
+  const kijun    = slow.map(d => d.kijun    ?? null);
+  const senkouA  = slow.map(d => d.senkouA  ?? null);
+  const senkouB  = slow.map(d => d.senkouB  ?? null);
+  const kijunPer = slow.findIndex(d => d.kijun !== undefined);
+  const displacement = kijunPer > 0 ? kijunPer : 26;
+  const chikou = new Array(n).fill(null);
+  for (let i = 0; i + displacement < n; i++) chikou[i] = prices[i + displacement];
+
+  const entries = new Array(n).fill(null);
+  const exits   = new Array(n).fill(null);
+  for (const trade of trades) {
+    if (trade.entryIndex < n) entries[trade.entryIndex] = trade.entry;
+    if (trade.exitIndex  < n) exits[trade.exitIndex]   = trade.exitPrice;
+  }
+
+  return new window.Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Senkou A', data: senkouA, borderColor: 'rgba(0,255,136,0.55)', borderWidth: 1, pointRadius: 0, tension: 0, fill: '+1', backgroundColor: 'rgba(0,255,136,0.07)', order: 6 },
+        { label: 'Senkou B', data: senkouB, borderColor: 'rgba(255,60,90,0.55)',  borderWidth: 1, pointRadius: 0, tension: 0, fill: false, order: 6 },
+        { label: 'Kijun',    data: kijun,   borderColor: 'rgba(0,180,255,0.85)',  borderWidth: 1.5, pointRadius: 0, tension: 0, order: 4 },
+        { label: 'Tenkan',   data: tenkan,  borderColor: 'rgba(255,200,0,0.75)',  borderWidth: 1, pointRadius: 0, tension: 0, order: 4 },
+        { label: 'Chikou',   data: chikou,  borderColor: 'rgba(176,96,255,0.55)', borderWidth: 1, pointRadius: 0, tension: 0, order: 4 },
+        { label: 'Precio',   data: prices,  borderColor: '#d0dce8', borderWidth: 2, pointRadius: 0, tension: 0, order: 2 },
+        { label: 'Entrada ejecutada', data: entries, borderColor: '#00ff88', backgroundColor: '#00ff88', pointRadius: 7, pointStyle: 'triangle', showLine: false, order: 1 },
+        { label: 'Salida',            data: exits,   borderColor: '#ff3c5a', backgroundColor: '#ff3c5a', pointRadius: 6, pointStyle: 'rectRot',  showLine: false, order: 1 },
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 250 },
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { color: '#3a4858', font: { size: 11 }, boxWidth: 14 } },
+        tooltip: {
+          backgroundColor: '#0c111a', borderColor: '#1a2030', borderWidth: 1,
+          titleColor: '#00d4ff', bodyColor: '#b8c8d8',
+          callbacks: { label: ctx => ctx.parsed.y === null ? null : ` ${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}` }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#3a4858', maxTicksLimit: 14, maxRotation: 0 }, grid: { color: 'rgba(26,32,48,0.8)' } },
+        y: { ticks: { color: '#3a4858' }, grid: { color: 'rgba(26,32,48,0.8)' } }
+      }
+    }
+  });
+}
+
+function renderEquityChart(canvas, equityArr) {
+  if (_equityChart) { _equityChart.destroy(); _equityChart = null; }
+  const labels = equityArr.map((_, i) => i === 0 ? 'Start' : `T${i}`);
+  const lastVal = equityArr.at(-1) ?? 0;
+  _equityChart = new window.Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Equity (R)',
+        data: equityArr,
+        borderColor: lastVal >= 0 ? '#00ff88' : '#ff3c5a',
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: equityArr.map(v => v >= 0 ? '#00ff88' : '#ff3c5a'),
+        tension: 0.3,
+        fill: { target: { value: 0 }, above: 'rgba(0,255,136,0.07)', below: 'rgba(255,60,90,0.07)' }
+      }]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 250 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#3a4858', maxTicksLimit: 12 }, grid: { color: 'rgba(26,32,48,0.8)' } },
+        y: { ticks: { color: '#3a4858', callback: v => `${v}R` }, grid: { color: 'rgba(26,32,48,0.8)' } }
+      }
+    }
+  });
+  return _equityChart;
+}
+
+function renderVolumeChart(canvas, data) {
+  if (_volumeChart) { _volumeChart.destroy(); _volumeChart = null; }
+  const n = data.length;
+  const labels  = data.map((bar, i) => bar.date || i);
+  const volumes = data.map(bar => isNaN(bar.volume) ? null : bar.volume);
+
+  // MA20
+  const ma20 = new Array(n).fill(null);
+  for (let i = 19; i < n; i++) {
+    let sum = 0, count = 0;
+    for (let j = i - 19; j <= i; j++) {
+      if (!isNaN(data[j]?.volume)) { sum += data[j].volume; count++; }
+    }
+    if (count > 0) ma20[i] = sum / count;
+  }
+
+  const barColors = volumes.map((v, i) => {
+    if (v === null || ma20[i] === null) return 'rgba(58,72,88,0.5)';
+    if (v < ma20[i] * 0.8)  return 'rgba(0,255,136,0.55)';
+    if (v > ma20[i] * 1.2)  return 'rgba(255,60,90,0.65)';
+    return 'rgba(58,72,88,0.65)';
+  });
+
+  _volumeChart = new window.Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Volumen', data: volumes, backgroundColor: barColors, borderWidth: 0, order: 2 },
+        { label: 'Media 20', data: ma20, borderColor: 'rgba(0,212,255,0.6)', borderWidth: 1.5, pointRadius: 0, type: 'line', tension: 0, fill: false, order: 1 }
+      ]
+    },
+    options: {
+      responsive: true,
+      animation: { duration: 250 },
+      plugins: { legend: { labels: { color: '#3a4858', font: { size: 11 }, boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: '#3a4858', maxTicksLimit: 14, maxRotation: 0 }, grid: { color: 'rgba(26,32,48,0.6)' } },
+        y: { ticks: { color: '#3a4858' }, grid: { color: 'rgba(26,32,48,0.6)' } }
+      }
+    }
+  });
+  return _volumeChart;
+}
+
+// Dashboard rendering
+function renderDashboard(data, chartArea, diagnosticPanel, options = {}) {
+  const normalizedData = normalizeMarketData(data);
+  if (!normalizedData || normalizedData.length === 0) {
+    chartArea.innerHTML = '<div class="placeholder"><p style="color:#ff3c5a;">No hay datos para mostrar.</p></div>';
+    return;
+  }
+
+  const assetType = options.assetType === 'crypto' ? 'crypto' : 'acciones';
+  const slowP = assetType === 'crypto' ? [10, 30, 60] : [9, 26, 52];
+  const fastP = assetType === 'crypto' ? [5, 15, 30] : [7, 22, 44];
+  const atrPer = 14;
+  const SCORE_CONFIG = assetType === 'crypto'
+    ? { coreMin: 70, totalMin: 80 }
+    : { coreMin: 70, totalMin: 75 };
+
+  const slow = ichimokuOptimized(JSON.parse(JSON.stringify(normalizedData)), ...slowP);
+  const fast = ichimokuOptimized(JSON.parse(JSON.stringify(normalizedData)), ...fastP);
+  const atrArr = calcATR(normalizedData, atrPer);
+  const prices = normalizedData.map(d => d.close);
+  const N = prices.length;
+  const kijunSlow = slowP[1];
+
+  // v9 — AUTO-CALIBRACIÓN
+  const calib = calibrateParams(slow, atrArr, N);
+
+  const btLimit = N - kijunSlow - 61;
+
+  const sigIndices = [];
+  for (let i = 100; i < btLimit; i++) {
+    const res = buildSignal(slow, fast, i, kijunSlow, atrArr, SCORE_CONFIG, normalizedData, calib);
+    if (res && res.valid) sigIndices.push(i);
+  }
+
+  const bt = runBacktest(fast, prices, sigIndices, normalizedData);
+  const lastIdx = N - 1;
+  const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, normalizedData, calib);
+
+  renderMetrics(bt, current, atrPer, SCORE_CONFIG, calib);
+
+  chartArea.innerHTML = '<canvas id="chartPrice" height="300"></canvas>';
+  setTimeout(() => {
+    const canvas = document.getElementById('chartPrice');
+    if (canvas) renderPriceChart(canvas, normalizedData, slow, fast, bt.trades ?? []);
+  }, 0);
+
+  // ── Equity chart ────────────────────────────────────────────────────────────
+  const equityArea = document.getElementById('chartEquityArea');
+  if (equityArea && bt.equity && bt.equity.length > 1) {
+    equityArea.classList.remove('hidden');
+    equityArea.querySelector('canvas').getContext('2d'); // ensure ready
+    setTimeout(() => {
+      const cvs = document.getElementById('chartEquity');
+      if (cvs) renderEquityChart(cvs, bt.equity);
+    }, 0);
+  } else if (equityArea) {
+    equityArea.classList.add('hidden');
+  }
+
+  // ── Volume chart ─────────────────────────────────────────────────────────────
+  const volumeArea = document.getElementById('chartVolumeArea');
+  const hasVolume = normalizedData.some(bar => !isNaN(bar.volume));
+  if (volumeArea && hasVolume) {
+    volumeArea.classList.remove('hidden');
+    setTimeout(() => {
+      const cvs = document.getElementById('chartVolume');
+      if (cvs) renderVolumeChart(cvs, normalizedData);
+    }, 0);
+  } else if (volumeArea) {
+    volumeArea.classList.add('hidden');
+  }
+
+  renderDiagnostic(current, SCORE_CONFIG, diagnosticPanel);
+}
+
+// Metrics
+function renderMetrics(bt, current, atrPer, scoreConfig, calib) {
+  const metricsGrid = document.getElementById('metricsGrid');
+  if (!metricsGrid) return;
+
+  const absNum = (value, decimals = 2) => {
+    const n = Number(value);
+    if (Number.isNaN(n)) return '0';
+    return Math.abs(n).toFixed(decimals);
+  };
+
+  const totalSignals = Math.abs(Number(bt?.total || 0));
+  const winRateAbs = absNum(bt?.winRate, 1);
+  const expectancyAbs = absNum(bt?.expectancy, 2);
+  const totalRAbs = absNum(bt?.totalR, 2);
+  const maxDDAbs = absNum(bt?.maxDD, 2);
+  const coreAbs = absNum(current?.coreScore, 0);
+  const totalScoreAbs = absNum(current?.totalScore, 0);
+  const atrAbs = absNum(current?.atrVal, 4);
+  const cloudAbs = absNum((current?.cloudThickness ?? 0) * 100, 2);
+  const tkAbs = absNum((current?.trendStrength ?? 0) * 100, 2);
+  const pbAbs = current?.pbType || 'NO_PULLBACK';
+  const regimeAbs = current?.regime || 'RANGE';
+
+  const calibAtrPct   = absNum((calib?.atrNormMedian ?? 0) * 100, 2);
+  const calibCloudPct = absNum((calib?.cloudThicknessMin ?? 0) * 100, 2);
+  const calibTkPct    = absNum((calib?.tkSpreadMin ?? 0) * 100, 2);
+
+  const revBonus = current?.bonusDetail?.find(b => b.name.includes('reversal'));
+  const pattern  = revBonus?.pattern || 'NINGUNO';
+
+  let volStatus = 'SIN DATOS';
+  if (current) {
+    const volBonus = current.bonusDetail.find(b => b.name.includes('Volumen'));
+    if (volBonus?.nodata)       volStatus = 'SIN DATOS';
+    else if (volBonus?.ok === true)  volStatus = 'OK ↓';
+    else if (volBonus?.warn) volStatus = '⚠ ALTO';
+  }
+
+  const isActive  = current && current.valid;
+  const signalBox = `
+    <div class="signal-box ${isActive ? 'ON' : 'OFF'}" style="font-size:34px;padding:14px 22px;letter-spacing:4px;margin-bottom:12px;">
+      ${isActive ? '🟢 &nbsp;TRADE ON' : '🔴 &nbsp;TRADE OFF'}
+    </div>
+  `;
+
+  const absItems = [
+    ['señales',    totalSignals],
+    ['winRate',    `${winRateAbs}%`],
+    ['expectancy', `${expectancyAbs}R`],
+    ['totalR',     `${totalRAbs}R`],
+    ['maxDD',      `${maxDDAbs}R`],
+    ['régimen',    regimeAbs],
+    ['core',       coreAbs],
+    ['totalScore', totalScoreAbs],
+    [`atr${atrPer}`, atrAbs],
+    ['nube',       `${cloudAbs}%`],
+    ['tk',         `${tkAbs}%`],
+    ['pullback',   pbAbs],
+    ['reversal',   pattern],
+    ['volumen',    volStatus],
+    ['calibNube',  `${calibCloudPct}%`],
+    ['calibATR',   `${calibAtrPct}%`],
+    ['calibTK',    `${calibTkPct}%`],
+  ];
+
+  const colSize = Math.ceil(absItems.length / 3);
+  const cols = [absItems.slice(0, colSize), absItems.slice(colSize, colSize * 2), absItems.slice(colSize * 2)];
+
+  const renderCol = (items) => items.map(([k, v]) => `
+    <div class="abs-row">
+      <span class="abs-key">${k}</span>
+      <span class="abs-val">${v}</span>
+    </div>
+  `).join('');
+
+  metricsGrid.innerHTML = signalBox + `
+    <div class="abs-panel">
+      <div class="metric-label">Valores absolutos (sin condicionales)</div>
+      <div class="abs-grid">
+        <div class="abs-col">${renderCol(cols[0])}</div>
+        <div class="abs-col">${renderCol(cols[1])}</div>
+        <div class="abs-col">${renderCol(cols[2])}</div>
+      </div>
+    </div>
+  `;
+}
+
+// Diagnostic panel
+function renderDiagnostic(current, scoreConfig, diagnosticPanel) {
+  if (!diagnosticPanel) return;
+
+  if (!current) {
+    diagnosticPanel.style.display = 'none';
+    return;
+  }
+
+  diagnosticPanel.style.display = 'block';
+
+  const regimeRowHTML = `
+    <div class="cond-row">
+      <span class="cond-name">Régimen — slope Kijun & distancia > 0.5×ATR</span>
+      <span class="${current.regime === 'TREND' ? 'cond-ok' : 'cond-fail'}">
+        ${current.regime === 'TREND' ? '✔ TREND' : '✗ RANGE'}
+      </span>
+    </div>
+  `;
+
+  const coreRowsHTML = current.coreDetail.map(d => `
+    <div class="cond-row">
+      <span class="cond-name">${d.name}</span>
+      <span class="${d.ok ? 'cond-ok' : 'cond-fail'}">
+        ${d.ok ? `✔ +${d.pts}` : `✗ +0 / ${d.max}`}
+      </span>
+    </div>
+  `).join('');
+
+  const bonusRowsHTML = current.bonusDetail.map(d => {
+    if (d.nodata) {
+      return `
+        <div class="cond-row">
+          <span class="cond-name">${d.name}</span>
+          <span class="cond-nodata">— sin datos</span>
+        </div>
+      `;
+    }
+    if (d.warn) {
+      return `
+        <div class="cond-row">
+          <span class="cond-name">${d.name}</span>
+          <span class="cond-bonus-fail" style="color:var(--yellow)">⚠ revisar</span>
+        </div>
+      `;
+    }
+    return `
+      <div class="cond-row">
+        <span class="cond-name">${d.name}</span>
+        <span class="${d.ok ? 'cond-bonus-ok' : 'cond-bonus-fail'}">
+          ${d.ok ? `⊕ +${d.pts}` : `○ +0 / ${d.max}`}
+        </span>
+      </div>
+    `;
+  }).join('');
+
+  const corePct   = current.coreScore;
+  const coreColor = corePct >= scoreConfig.coreMin ? '#00ff88' : corePct >= 50 ? '#ffcc00' : '#ff3c5a';
+  const coreClass = corePct >= scoreConfig.coreMin ? 'good'    : corePct >= 50 ? 'neutral' : 'bad';
+
+  const totPct   = current.totalScore;
+  const totColor = totPct >= scoreConfig.totalMin ? '#00ff88' : totPct >= 55 ? '#ffcc00' : '#ff3c5a';
+  const totClass = totPct >= scoreConfig.totalMin ? 'good'    : totPct >= 55 ? 'neutral' : 'bad';
+  const totWidth = Math.min(Math.max(totPct, 0) / 120 * 100, 100);
+
+  diagnosticPanel.innerHTML = `
+    <div class="panel-title">Diagnóstico — última barra</div>
+    <div class="section-label">◆ Condiciones core (max 100 pts)</div>
+    ${regimeRowHTML}
+    ${coreRowsHTML}
+    <div class="section-label" style="margin-top:14px">⊕ Confirmaciones adicionales (bonus, max +20 pts)</div>
+    ${bonusRowsHTML}
+    <div class="score-section">
+      <div class="score-row">
+        <span class="score-label">Core score</span>
+        <div class="score-track">
+          <div class="score-fill" style="width:${Math.min(corePct, 100)}%;background:${coreColor}"></div>
+        </div>
+        <span class="score-num ${coreClass}">${corePct}/100</span>
+      </div>
+      <div class="score-row">
+        <span class="score-label">Total (core + bonus)</span>
+        <div class="score-track">
+          <div class="score-fill" style="width:${totWidth}%;background:${totColor}"></div>
+        </div>
+        <span class="score-num ${totClass}">${totPct}/120</span>
+      </div>
+      <div class="fix-note">
+        Umbrales: core ≥ ${scoreConfig.coreMin}/100 && total ≥ ${scoreConfig.totalMin}/120 && régimen=TREND
+      </div>
+    </div>
+  `;
+}
+
+// ========================================
+// LOGICA PRINCIPAL DE LA APP
+// ========================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+  // ── DOM elements ─────────────────────────────────────────────────────────────
+  const btnCsv         = document.getElementById('btnCsv');
+  const csvFile        = document.getElementById('csvFile');
+  const btnApi         = document.getElementById('btnApi');
+  const btnScanTradeOn = document.getElementById('btnScanTradeOn');
+  const tradeOnResults = document.getElementById('tradeOnResults');
+  const apiConnector   = document.getElementById('apiConnector');
+  const cryptoSearch   = document.getElementById('cryptoSearch');
+  const cryptoList     = document.getElementById('cryptoList');
+  const selectedCrypto = document.getElementById('selectedCrypto');
+  const samplePeriod   = document.getElementById('samplePeriod');
+  const chartArea      = document.getElementById('chartArea');
+  const diagnosticPanel = document.getElementById('diagnosticPanel');
+  const metricsGrid    = document.getElementById('metricsGrid');
+  const status         = document.getElementById('status');
+
+  // Settings modal elements
+  const btnSettings        = document.getElementById('btnSettings');
+  const settingsModal      = document.getElementById('settingsModal');
+  const closeSettings      = document.getElementById('closeSettings');
+  const saveSettings       = document.getElementById('saveSettings');
+  const cancelSettings     = document.getElementById('cancelSettings');
+  const scanDelay          = document.getElementById('scanDelay');
+  const scanLimit          = document.getElementById('scanLimit');
+  const selectedAssetsCount = document.getElementById('selectedAssetsCount');
+  const selectAllAssets    = document.getElementById('selectAllAssets');
+  const clearAllAssets     = document.getElementById('clearAllAssets');
+
+  // ── App state ─────────────────────────────────────────────────────────────────
+  let isApiConnected   = false;
+  let apiData          = null;
+  let fullData         = null;
+  let cryptoListData   = [];
+  let currentConnector = 'coingecko';
+  let tradeOnAssets    = [];
+
+  // Scanner config — load from localStorage or fall back to defaults
+  let scannerConfig = {
+    delayBetweenRequests: API_CONFIG.scanner.delayBetweenRequests,
+    maxAssetsToScan:      API_CONFIG.scanner.maxAssetsToScan
+  };
+  const savedConfig = localStorage.getItem('scannerConfig');
+  if (savedConfig) {
+    try {
+      scannerConfig = JSON.parse(savedConfig);
+      console.log('[INFO] Configuración del scanner cargada desde localStorage:', scannerConfig);
+    } catch (e) {
+      console.warn('[WARN] Error al cargar configuración guardada, usando valores por defecto');
+    }
+  } else {
+    console.log('[INFO] Configuración del scanner (valores por defecto):', scannerConfig);
+  }
+
+  // Selected assets for scan — persist in localStorage
+  let selectedAssetsForScan = [];
+  const savedAssets = localStorage.getItem('selectedAssetsForScan');
+  if (savedAssets) {
+    try {
+      selectedAssetsForScan = JSON.parse(savedAssets);
+      console.log(`[INFO] Activos seleccionados para scan: ${selectedAssetsForScan.length}`);
+    } catch (e) {
+      console.warn('[WARN] Error al cargar activos seleccionados');
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+  const setStatus = (msg) => { status.textContent = msg; };
+
+  function updateUIState() {
+    cryptoSearch.disabled    = !isApiConnected;
+    samplePeriod.disabled    = !isApiConnected;
+    btnScanTradeOn.disabled  = !isApiConnected;
+    cryptoSearch.placeholder = isApiConnected ? '🔍 Buscar activo...' : '🔒 Conecta API primero...';
+  }
+
+  function getFilteredAssets() {
+    const term = (cryptoSearch.value || '').toLowerCase();
+    return cryptoListData.filter(c =>
+      c.name.toLowerCase().includes(term) ||
+      c.symbol.toLowerCase().includes(term) ||
+      c.id.toLowerCase().includes(term)
+    );
+  }
+
+  const doRenderList = () => renderCryptoList(
+    cryptoList,
+    getFilteredAssets(),
+    selectedCrypto.value,
+    selectedAssetsForScan,
+    {
+      onCheckboxToggle(assetId, checked) {
+        if (checked) {
+          if (!selectedAssetsForScan.includes(assetId)) selectedAssetsForScan.push(assetId);
+        } else {
+          selectedAssetsForScan = selectedAssetsForScan.filter(id => id !== assetId);
+        }
+        localStorage.setItem('selectedAssetsForScan', JSON.stringify(selectedAssetsForScan));
+        console.log(`📌 Activos seleccionados: ${selectedAssetsForScan.length}`);
+      },
+      async onAssetClick(itemId) {
+        selectedCrypto.value = itemId;
+        cryptoSearch.value   = '';
+        cryptoList.classList.add('hidden');
+        if (!isApiConnected) {
+          await connectAPI();
+        } else {
+          await disconnectAPI();
+          setTimeout(() => connectAPI(), 100);
+        }
+      }
+    }
+  );
+
+  // ── API connect / disconnect ────────────────────────────────────────────────
+  async function connectAPI() {
+    setStatus('Recargando lista de activos...');
+    cryptoListData = await loadAssetList(currentConnector, {
+      onStatus: setStatus,
+      setSearchPlaceholder: (p) => { cryptoSearch.placeholder = p; },
+      disableSearch: () => { cryptoSearch.disabled = true; }
+    });
+    doRenderList();
+
+    const assetId = selectedCrypto.value;
+    if (!assetId) { setStatus('Por favor, selecciona un activo.'); return; }
+
+    const assetData = cryptoListData.find(c => c.id === assetId);
+    const assetName = assetData ? assetData.name : assetId;
+
+    try {
+      let data;
+      if (currentConnector === 'coingecko') {
+        setStatus(`Conectando a CoinGecko (${assetName})...`);
+        const raw = await loadData({
+          type: 'api',
+          apiConfig: {
+            endpoint: `/coins/${assetId}/ohlc`,
+            params: { vs_currency: 'usd', days: '365' },
+            apiKey: API_CONFIG.coingecko.apiKey
+          }
+        });
+        data = raw.map(c => ({
+          date: new Date(c[0]).toISOString().slice(0, 10),
+          open: c[1], high: c[2], low: c[3], close: c[4], volume: null
+        }));
+        console.log(`[OK] CoinGecko conectada: ${assetName}`);
+
+      } else if (currentConnector === 'twelvedata') {
+        setStatus(`Conectando a TwelveData (${assetName})...`);
+        const { apiKey, baseUrl, endpoints: { timeSeries: ep }, defaults } = API_CONFIG.twelvedata;
+        const url      = `${baseUrl}${ep}?apikey=${apiKey}&symbol=${assetId}&interval=${defaults.interval}&outputsize=${defaults.outputsize}&format=${defaults.format}`;
+        const response = await fetch(url);
+        const raw      = await response.json();
+        if (raw.status === 'error') throw new Error(raw.message || 'Error en TwelveData API');
+        data = raw.values.map(item => ({
+          date:   item.datetime,
+          open:   parseFloat(item.open),
+          high:   parseFloat(item.high),
+          low:    parseFloat(item.low),
+          close:  parseFloat(item.close),
+          volume: parseFloat(item.volume)
+        })).reverse();
+        console.log(`[OK] TwelveData conectada: ${assetName}`);
+      }
+
+      apiData  = data;
+      fullData = data;
+      const filtered = filterDataByPeriod(data, samplePeriod.value);
+      isApiConnected = true;
+      btnApi.textContent = '🔴 Desconectar API';
+      btnApi.classList.add('connected');
+      updateUIState();
+      setStatus(`API conectada: ${data.length} puntos de ${assetName}. Mostrando últimos ${filtered.length}.`);
+      renderDashboard(filtered, chartArea, diagnosticPanel, {
+        assetType: currentConnector === 'coingecko' ? 'crypto' : 'acciones'
+      });
+
+    } catch (err) {
+      console.error('[ERROR] Error API:', err);
+      setStatus(`Error al conectar a API: ${err.message || err}`);
+      isApiConnected = false;
+      btnApi.classList.remove('connected');
+      updateUIState();
+    }
+  }
+
+  async function disconnectAPI() {
+    isApiConnected = false;
+    apiData        = null;
+    fullData       = null;
+    btnApi.textContent = '🔌 Conectar a API';
+    btnApi.classList.remove('connected');
+    updateUIState();
+    setStatus('API desconectada.');
+    chartArea.innerHTML = `
+      <div class="placeholder">
+        <p class="placeholder-title">📈 Gráfica del Activo</p>
+        <p class="placeholder-text">Selecciona una fuente de datos para comenzar</p>
+      </div>
+    `;
+    diagnosticPanel.innerHTML  = '';
+    diagnosticPanel.style.display = 'none';
+    metricsGrid.innerHTML      = '';
+    console.log('[INFO] API desconectada');
+  }
+
+  // ── Initialisation ───────────────────────────────────────────────────────────
+  cryptoListData = await loadAssetList(currentConnector, {
+    onStatus: setStatus,
+    setSearchPlaceholder: (p) => { cryptoSearch.placeholder = p; },
+    disableSearch: () => { cryptoSearch.disabled = true; }
+  });
+  doRenderList();
+  updateUIState();
+
+  // ── Wire components ──────────────────────────────────────────────────────────
+  initAssetSearch({ cryptoSearch, cryptoList, onRenderList: doRenderList });
+
+  initSettings({
+    btnSettings, settingsModal, closeSettings, saveSettings, cancelSettings,
+    scanDelay, scanLimit, selectedAssetsCount, selectAllAssets, clearAllAssets,
+    getState: () => ({ scannerConfig, selectedAssetsForScan, cryptoListData }),
+    setState(updates) {
+      if (updates.scannerConfig      !== undefined) scannerConfig      = updates.scannerConfig;
+      if (updates.selectedAssetsForScan !== undefined) selectedAssetsForScan = updates.selectedAssetsForScan;
+    },
+    onStatus: setStatus
+  });
+
+  // ── Event listeners ─────────────────────────────────────────────────────
+  btnCsv.onclick = () => csvFile.click();
+  csvFile.onchange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setStatus('Cargando CSV...');
+    try {
+      const raw  = await loadData({ type: 'csv', file });
+      const data = normalizeData(raw);
+      fullData   = data;
+      const filtered = filterDataByPeriod(data, samplePeriod.value);
+      setStatus(`CSV cargado: ${data.length} filas. Mostrando últimos ${filtered.length} puntos.`);
+      renderDashboard(filtered, chartArea, diagnosticPanel, {
+        assetType: currentConnector === 'coingecko' ? 'crypto' : 'acciones'
+      });
+    } catch (err) {
+      console.error('[ERROR] Error CSV:', err);
+      setStatus(`Error al cargar CSV: ${err.message || err}`);
+    }
+  };
+
+  btnApi.onclick = async () => {
+    if (isApiConnected) {
+      await disconnectAPI();
+    } else {
+      await connectAPI();
+    }
+  };
+
+  samplePeriod.addEventListener('change', () => {
+    if (fullData && fullData.length > 0) {
+      const filtered = filterDataByPeriod(fullData, samplePeriod.value);
+      renderDashboard(filtered, chartArea, diagnosticPanel, {
+        assetType: currentConnector === 'coingecko' ? 'crypto' : 'acciones'
+      });
+      setStatus(`Mostrando últimos ${filtered.length} puntos de ${fullData.length} totales.`);
+    }
+  });
+
+  apiConnector.addEventListener('change', async () => {
+    currentConnector = apiConnector.value;
+    if (isApiConnected) await disconnectAPI();
+    cryptoSearch.value   = '';
+    selectedCrypto.value = currentConnector === 'coingecko' ? 'bitcoin' : 'AAPL';
+    cryptoListData = await loadAssetList(currentConnector, {
+      onStatus: setStatus,
+      setSearchPlaceholder: (p) => { cryptoSearch.placeholder = p; },
+      disableSearch: () => { cryptoSearch.disabled = true; }
+    });
+  });
+
+  btnScanTradeOn.onclick = async () => {
+    console.log('[INFO] Scan button clicked!');
+    if (cryptoListData.length === 0) {
+      setStatus('No hay activos cargados. Selecciona un conector API primero.');
+      return;
+    }
+
+    let assetsToScan;
+    if (selectedAssetsForScan.length > 0) {
+      assetsToScan = cryptoListData.filter(a => selectedAssetsForScan.includes(a.id));
+      console.log(`[INFO] Usando ${assetsToScan.length} activos seleccionados`);
+    } else {
+      assetsToScan = cryptoListData.slice(0, scannerConfig.maxAssetsToScan);
+      console.log(`[INFO] Usando primeros ${assetsToScan.length}`);
+    }
+
+    const scanSource  = selectedAssetsForScan.length > 0 ? 'seleccionados manualmente' : `primeros ${scannerConfig.maxAssetsToScan} de la lista`;
+    const confirmScan = confirm(
+      `¿Escanear ${assetsToScan.length} activos buscando señales TRADE ON?\n\n` +
+      `Esto puede tomar varios minutos y consumir límites de API.\n\n` +
+      `Activos: ${scanSource}\nDelay: ${scannerConfig.delayBetweenRequests}ms`
+    );
+    if (!confirmScan) return;
+
+    btnScanTradeOn.disabled = true;
+    btnScanTradeOn.classList.add('scanning');
+    btnScanTradeOn.textContent = '⏳ Escaneando...';
+
+    const assetTypeForScan = currentConnector === 'coingecko' ? 'crypto' : 'acciones';
+    tradeOnAssets = await runScan({
+      assetsToScan,
+      scannerConfig,
+      currentConnector,
+      assetType: assetTypeForScan,
+      onProgress(scanned, total, name, found, errors) {
+        setStatus(`Escaneando ${scanned}/${total}: ${name}... (Encontrados: ${found}, Errores: ${errors})`);
+      },
+      onTooManyErrors: () => setStatus('⚠️ Demasiados errores de API. Escaneo detenido.')
+    });
+
+    btnScanTradeOn.disabled = false;
+    btnScanTradeOn.classList.remove('scanning');
+    btnScanTradeOn.textContent = '🔍 Scan trade ON';
+
+    if (tradeOnAssets.length > 0) {
+      setStatus(`✅ Escaneo completo: ${tradeOnAssets.length} activos con TRADE ON`);
+      renderTradeOnResults(tradeOnResults, tradeOnAssets);
+      tradeOnResults.classList.remove('hidden');
+    } else {
+      setStatus('⚠️ Escaneo completo: ningún activo con TRADE ON');
+      tradeOnResults.classList.add('hidden');
+    }
+  };
+
+  tradeOnResults.addEventListener('change', async () => {
+    const selectedAssetId = tradeOnResults.value;
+    if (!selectedAssetId) return;
+    const asset = tradeOnAssets.find(a => a.id === selectedAssetId);
+    if (!asset) return;
+    selectedCrypto.value = selectedAssetId;
+    cryptoSearch.value   = asset.name;
+    if (isApiConnected) await disconnectAPI();
+    await connectAPI();
+  });
+});
+
+// Scanner functions
+async function analyzeAssetForTradeOn(data, assetType) {
+  const normalized = normalizeMarketData(data);
+  if (!normalized || normalized.length < 60) {
+    console.log(`⚠️ Data insufficient: ${normalized ? normalized.length : 0} bars (need 60+)`);
+    return false;
+  }
+
+  try {
+    const slowP = assetType === 'crypto' ? [10, 30, 60] : [9, 26, 52];
+    const fastP = assetType === 'crypto' ? [5,  15, 30] : [7, 22, 44];
+    const atrPer = 14;
+    const SCORE_CONFIG = assetType === 'crypto'
+      ? { coreMin: 70, totalMin: 80 }
+      : { coreMin: 70, totalMin: 75 };
+
+    const slow = ichimokuOptimized(JSON.parse(JSON.stringify(normalized)), ...slowP);
+    const fast = ichimokuOptimized(JSON.parse(JSON.stringify(normalized)), ...fastP);
+    const atrArr    = calcATR(normalized, atrPer);
+    const N         = normalized.length;
+    const kijunSlow = slowP[1];
+
+    const calib   = calibrateParams(slow, atrArr, N);
+    const lastIdx = N - 1;
+    const current = buildSignal(slow, fast, lastIdx, kijunSlow, atrArr, SCORE_CONFIG, normalized, calib);
+
+    const isTradeOn = current && current.valid;
+    console.log(`Result: ${isTradeOn ? '✅ TRADE ON' : '❌ No signal'}`);
+    return isTradeOn;
+
+  } catch (err) {
+    console.error('❌ Error analyzing asset:', err);
+    return false;
+  }
+}
+
+async function runScan({ assetsToScan, scannerConfig, currentConnector, assetType, onProgress, onTooManyErrors }) {
+  const tradeOnAssets = [];
+  const totalAssets   = assetsToScan.length;
+  let scanned = 0;
+  let errors  = 0;
+
+  for (const asset of assetsToScan) {
+    scanned++;
+    onProgress?.(scanned, totalAssets, asset.name, tradeOnAssets.length, errors);
+
+    try {
+      const data = await fetchAssetData(asset.id, currentConnector);
+
+      if (!data || data.length < 60) {
+        console.log(`⚠️ ${asset.name}: datos insuficientes (${data?.length || 0} barras)`);
+        errors++;
+        continue;
+      }
+
+      const hasTradeOn = await analyzeAssetForTradeOn(data, assetType);
+
+      if (hasTradeOn) {
+        tradeOnAssets.push(asset);
+        console.log(`✅ TRADE ON encontrado: ${asset.name}`);
+      }
+
+      await new Promise(resolve => setTimeout(resolve, scannerConfig.delayBetweenRequests));
+
+    } catch (err) {
+      console.error(`Error escaneando ${asset.name}:`, err);
+      errors++;
+      if (errors > 5) {
+        onTooManyErrors?.();
+        break;
+      }
+    }
+  }
+
+  return tradeOnAssets;
+}
+
+// Settings functions
+function initSettings({
+  btnSettings, settingsModal, closeSettings, saveSettings, cancelSettings,
+  scanDelay, scanLimit, selectedAssetsCount, selectAllAssets, clearAllAssets,
+  getState, setState, onStatus
+}) {
+  function updateSelectedAssetsCount() {
+    const count = getState().selectedAssetsForScan.length;
+    selectedAssetsCount.textContent = count === 0
+      ? 'Ningún activo seleccionado (se usarán los primeros N de la lista)'
+      : `${count} activo${count > 1 ? 's' : ''} seleccionado${count > 1 ? 's' : ''} para scan`;
+  }
+
+  btnSettings.addEventListener('click', () => {
+    const { scannerConfig } = getState();
+    scanDelay.value = scannerConfig.delayBetweenRequests;
+    scanLimit.value = scannerConfig.maxAssetsToScan;
+    updateSelectedAssetsCount();
+    settingsModal.classList.remove('hidden');
+  });
+
+  closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+  cancelSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
+
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.add('hidden');
+  });
+
+  selectAllAssets.addEventListener('click', () => {
+    const { cryptoListData } = getState();
+    const all = cryptoListData.map(asset => asset.id);
+    setState({ selectedAssetsForScan: all });
+    localStorage.setItem('selectedAssetsForScan', JSON.stringify(all));
+    updateSelectedAssetsCount();
+    onStatus(`✅ Seleccionados todos los activos (${all.length})`);
+    console.log('📌 Todos los activos seleccionados:', all.length);
+  });
+
+  clearAllAssets.addEventListener('click', () => {
+    setState({ selectedAssetsForScan: [] });
+    localStorage.setItem('selectedAssetsForScan', JSON.stringify([]));
+    updateSelectedAssetsCount();
+    onStatus('🗑️ Selección de activos limpiada');
+    console.log('📌 Selección limpiada');
+  });
+
+  saveSettings.addEventListener('click', () => {
+    const newDelay = parseInt(scanDelay.value);
+    const newLimit = parseInt(scanLimit.value);
+
+    if (newDelay < 1000 || newDelay > 30000) {
+      alert('⚠️ El delay debe estar entre 1000ms (1seg) y 30000ms (30seg)');
+      return;
+    }
+    if (newLimit < 5 || newLimit > 100) {
+      alert('⚠️ El límite debe estar entre 5 y 100 activos');
+      return;
+    }
+
+    const scannerConfig = { delayBetweenRequests: newDelay, maxAssetsToScan: newLimit };
+    setState({ scannerConfig });
+    localStorage.setItem('scannerConfig', JSON.stringify(scannerConfig));
+    console.log('✅ Configuración guardada:', scannerConfig);
+    onStatus(`⚙️ Configuración actualizada: ${newDelay}ms delay, ${newLimit} activos max`);
+    settingsModal.classList.add('hidden');
+  });
+
+  return { updateSelectedAssetsCount };
+}
+
+// Asset search functions
+function initAssetSearch({ cryptoSearch, cryptoList, onRenderList }) {
+  cryptoSearch.addEventListener('focus', () => {
+    cryptoList.classList.remove('hidden');
+    onRenderList();
+  });
+
+  cryptoSearch.addEventListener('input', () => {
+    onRenderList();
+    cryptoList.classList.remove('hidden');
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.crypto-dropdown')) {
+      cryptoList.classList.add('hidden');
+    }
+  });
+}
+
+console.log('[INFO] Check Finance App iniciada - HTML version');
+console.log('[INFO] CSV soportado: formato español (comas decimales) e inglés (puntos decimales)');
+console.log('[INFO] APIs: CoinGecko (criptos) | TwelveData (acciones/bonos)');
+  </script>
+</body>
+</html>
