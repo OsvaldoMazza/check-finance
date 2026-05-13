@@ -1,0 +1,37 @@
+{
+  "name": "custom-to-scan",
+  "savedAt": "2026-05-13T03:20:24.193Z",
+  "assetType": "stock",
+  "assets": [
+    {
+      "id": "AMZN",
+      "symbol": "AMZN",
+      "name": "Amazon.com Inc",
+      "type": "Stock"
+    },
+    {
+      "id": "AVGO",
+      "symbol": "AVGO",
+      "name": "Broadcom Inc",
+      "type": "Stock"
+    },
+    {
+      "id": "FTNT",
+      "symbol": "FTNT",
+      "name": "Fortinet Inc",
+      "type": "Stock"
+    },
+    {
+      "id": "U",
+      "symbol": "U",
+      "name": "Unity Software Inc",
+      "type": "Stock"
+    },
+    {
+      "id": "C",
+      "symbol": "C",
+      "name": "Citigroup Inc",
+      "type": "Stock"
+    }
+  ]
+}
